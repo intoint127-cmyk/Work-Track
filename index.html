@@ -1146,11 +1146,11 @@ function simpleHash(s) {
 // ============================================================
 let DB = {
   users: [
-    { id:1, name:'ผู้ดูแลระบบ',  username:'admin',   password:'admin123', role:'admin', position:'System Admin', dept:'IT',  color:'av-red'    },
-    { id:2, name:'สมชาย ใจดี',  username:'somchai', password:'1234',      role:'user',  position:'Developer',    dept:'IT',  color:'av-blue'   },
-    { id:3, name:'นภัส สว่าง',  username:'napat',   password:'1234',      role:'user',  position:'Designer',     dept:'UX',  color:'av-green'  },
-    { id:4, name:'วันชัย มีสุข', username:'wanchai', password:'1234',      role:'user',  position:'PM',           dept:'PM',  color:'av-purple' },
-    { id:5, name:'ปรียา ดาวดี', username:'priya',   password:'1234',      role:'user',  position:'QA Engineer',  dept:'QA',  color:'av-orange' },
+    { id:1, name:'ผู้ดูแลระบบ',  username:'admin',   password:'admin123', pwdHash:'g10hvh', role:'admin', position:'System Admin', dept:'IT',  color:'av-red'    },
+    { id:2, name:'สมชาย ใจดี',  username:'somchai', password:'1234',      pwdHash:'wcoy',  role:'user',  position:'Developer',    dept:'IT',  color:'av-blue'   },
+    { id:3, name:'นภัส สว่าง',  username:'napat',   password:'1234',      pwdHash:'wcoy',  role:'user',  position:'Designer',     dept:'UX',  color:'av-green'  },
+    { id:4, name:'วันชัย มีสุข', username:'wanchai', password:'1234',      pwdHash:'wcoy',  role:'user',  position:'PM',           dept:'PM',  color:'av-purple' },
+    { id:5, name:'ปรียา ดาวดี', username:'priya',   password:'1234',      pwdHash:'wcoy',  role:'user',  position:'QA Engineer',  dept:'QA',  color:'av-orange' },
   ],
   projects: [
     { id:1, name:'Release v3.0',  desc:'เตรียม release version 3.0', start:'2025-01-01', due:'2025-06-30', color:'#58a6ff', createdAt:'2025-01-01' },
@@ -1177,7 +1177,28 @@ let charts = {};
 let currentTaskView = 'table';
 
 function saveDB() { try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {} }
-function loadDB() { try { const d = localStorage.getItem('worktrackDB_v5'); if(d) DB = JSON.parse(d); } catch(e) {} }
+function loadDB() {
+  try {
+    const d = localStorage.getItem('worktrackDB_v5');
+    if(d) {
+      const parsed = JSON.parse(d);
+      DB = parsed;
+      // Migration: ensure all users have pwdHash
+      if(DB.users) {
+        DB.users.forEach(u => {
+          if(!u.pwdHash && u.password) {
+            u.pwdHash = simpleHash(u.password);
+          }
+        });
+        // Save migrated data back
+        try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {}
+      }
+    }
+  } catch(e) {
+    console.warn('loadDB error, resetting:', e);
+    localStorage.removeItem('worktrackDB_v5');
+  }
+}
 loadDB();
 
 // ============================================================
@@ -1638,7 +1659,19 @@ async function doLogin() {
   const alertEl = document.getElementById('loginAlert');
 
   // ── ขั้น 1: ตรวจสอบจาก LocalStorage ก่อนเสมอ (เร็ว ไม่ต้องรอ network)
-  const localUser = DB.users.find(x => x.username === u && (x.pwdHash === h || x.password === p));
+  // Find user: check hash first, then plaintext password as fallback
+  // Also ensure pwdHash is set (migrate old records)
+  let localUser = DB.users.find(x => x.username === u);
+  if(localUser) {
+    // Ensure pwdHash exists
+    if(!localUser.pwdHash && localUser.password) {
+      localUser.pwdHash = simpleHash(localUser.password);
+    }
+    // Check credentials
+    const passwordOk = (localUser.pwdHash && localUser.pwdHash === h) ||
+                       (localUser.password && localUser.password === p);
+    if(!passwordOk) localUser = null;
+  }
 
   if (localUser) {
     // ✅ พบใน LocalStorage → login ได้เลย
