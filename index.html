@@ -1196,42 +1196,58 @@ function updateConnectionBanner() {
 }
 
 // Generic API call
+// JSONP helper — bypasses CORS completely for GET requests
+function jsonpCall(url, params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_wt_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('JSONP timeout'));
+    }, 15000);
+
+    window[cbName] = function(data) {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+
+    const qs = new URLSearchParams({...params, callback: cbName});
+    const script = document.createElement('script');
+    script.src = `${url}?${qs}`;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      reject(new Error('JSONP script load error'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// All writes go via GET with action + data encoded in URL params
+// Apps Script handles both ?callback=xxx (JSONP) and plain JSON
 async function apiCall(action, data={}, method='GET') {
   if(!USE_SHEETS) return null;
   try {
-    if(method==='GET') {
-      // GET: simple query params, Apps Script responds directly
-      const params = new URLSearchParams({action, ...data});
-      const res = await fetch(`${_effectiveUrl}?${params}`, {
-        method: 'GET',
-        redirect: 'follow',
-      });
-      const text = await res.text();
-      try { return JSON.parse(text); }
-      catch(e) { console.error('Parse error:', text); return { error: 'Invalid JSON response' }; }
+    // Always use JSONP GET — encode POST data as URL params too
+    // This is the only reliable way to avoid CORS with Apps Script
+    const params = { action };
+
+    if(method === 'GET') {
+      // Simple GET params
+      Object.assign(params, data);
     } else {
-      // POST: Apps Script requires text/plain to avoid CORS preflight
-      // Encode payload as JSON string in a form field
-      const formData = new URLSearchParams();
-      formData.append('payload', JSON.stringify({action, ...data}));
-      const res = await fetch(_effectiveUrl, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
-      });
-      const text = await res.text();
-      try { return JSON.parse(text); }
-      catch(e) { console.error('Parse error:', text); return { error: 'Invalid JSON response' }; }
+      // Encode body data as a single 'data' param
+      params.data = JSON.stringify(data);
+      params.method = 'POST';
     }
+
+    const result = await jsonpCall(_effectiveUrl, params);
+    return result;
   } catch(e) {
     console.error('API error:', e);
-    // Check if it's a CORS error vs network error
-    if(e.message && e.message.includes('fetch')) {
-      showToast('❌ CORS Error — ตรวจสอบ Apps Script Deploy settings:\n Execute as: Me | Access: Anyone', 'error');
-    } else {
-      showToast('❌ เชื่อมต่อไม่ได้: ' + e.message, 'error');
-    }
+    showToast('❌ เชื่อมต่อไม่ได้: ' + e.message + '\nตรวจสอบ Deploy settings', 'error');
     return null;
   }
 }
@@ -1315,67 +1331,67 @@ function saveDB() {
 
 // TASKS
 async function sheetsCreateTask(taskData) {
-  const res = await apiCall('createTask', {data: taskData}, 'POST');
+  const res = await apiCall('createTask', {data: taskData}, 'GET');
   if(res?.ok) return res.id;
   return null;
 }
 async function sheetsUpdateTask(taskData) {
-  return await apiCall('updateTask', {data: taskData}, 'POST');
+  return await apiCall('updateTask', {data: taskData}, 'GET');
 }
 async function sheetsDeleteTask(id) {
-  return await apiCall('deleteTask', {id}, 'POST');
+  return await apiCall('deleteTask', {id}, 'GET');
 }
 async function sheetsArchiveTask(id, by) {
-  return await apiCall('archiveTask', {id, by}, 'POST');
+  return await apiCall('archiveTask', {id, by}, 'GET');
 }
 async function sheetsRestoreTask(archiveId) {
-  return await apiCall('restoreTask', {id: archiveId}, 'POST');
+  return await apiCall('restoreTask', {id: archiveId}, 'GET');
 }
 
 // COMMENTS
 async function sheetsAddComment(taskId, data) {
-  return await apiCall('addComment', {taskId, data}, 'POST');
+  return await apiCall('addComment', {taskId, data}, 'GET');
 }
 
 // ATTACHMENTS
 async function sheetsAddAttachment(taskId, data) {
-  return await apiCall('addAttachment', {taskId, data}, 'POST');
+  return await apiCall('addAttachment', {taskId, data}, 'GET');
 }
 async function sheetsDeleteAttachment(id) {
-  return await apiCall('deleteAttachment', {id}, 'POST');
+  return await apiCall('deleteAttachment', {id}, 'GET');
 }
 
 // SUBTASKS
 async function sheetsAddSubtask(taskId, data) {
-  return await apiCall('addSubtask', {taskId, data}, 'POST');
+  return await apiCall('addSubtask', {taskId, data}, 'GET');
 }
 async function sheetsToggleSubtask(id, done) {
-  return await apiCall('toggleSubtask', {id, done}, 'POST');
+  return await apiCall('toggleSubtask', {id, done}, 'GET');
 }
 async function sheetsDeleteSubtask(id) {
-  return await apiCall('deleteSubtask', {id}, 'POST');
+  return await apiCall('deleteSubtask', {id}, 'GET');
 }
 
 // PROJECTS
 async function sheetsCreateProject(data) {
-  return await apiCall('createProject', {data}, 'POST');
+  return await apiCall('createProject', {data}, 'GET');
 }
 async function sheetsUpdateProject(data) {
-  return await apiCall('updateProject', {data}, 'POST');
+  return await apiCall('updateProject', {data}, 'GET');
 }
 async function sheetsDeleteProject(id) {
-  return await apiCall('deleteProject', {id}, 'POST');
+  return await apiCall('deleteProject', {id}, 'GET');
 }
 
 // USERS
 async function sheetsCreateUser(data) {
-  return await apiCall('createUser', {data}, 'POST');
+  return await apiCall('createUser', {data}, 'GET');
 }
 async function sheetsUpdateUser(data) {
-  return await apiCall('updateUser', {data}, 'POST');
+  return await apiCall('updateUser', {data}, 'GET');
 }
 async function sheetsDeleteUser(id) {
-  return await apiCall('deleteUser', {id}, 'POST');
+  return await apiCall('deleteUser', {id}, 'GET');
 }
 async function sheetsVerifyLogin(username, pwdHash) {
   return await apiCall('verifyLogin', {username, password: pwdHash}, 'GET');
@@ -1384,12 +1400,12 @@ async function sheetsVerifyLogin(username, pwdHash) {
 // AUDIT
 async function sheetsAddAudit(action, detail, user) {
   if(!USE_SHEETS) return;
-  return await apiCall('addAudit', {data:{action, detail, user}}, 'POST');
+  return await apiCall('addAudit', {data:{action, detail, user}}, 'GET');
 }
 
 // TIMELOG
 async function sheetsLogTime(taskId, minutes, userId, userName) {
-  return await apiCall('logTime', {taskId, data:{userId, userName, minutes}}, 'POST');
+  return await apiCall('logTime', {taskId, data:{userId, userName, minutes}}, 'GET');
 }
 
 // ============================================================
@@ -1426,7 +1442,7 @@ async function migrateToSheets() {
 
   showLoadingOverlay(true);
   // Init sheets first
-  await apiCall('initSheets', {}, 'POST');
+  await apiCall('initSheets', {}, 'GET');
   // Sync all
   const res = await apiCall('syncAll', {
     data: {
@@ -1434,7 +1450,7 @@ async function migrateToSheets() {
       users:    DB.users,
       projects: DB.projects,
     }
-  }, 'POST');
+  }, 'GET');
   showLoadingOverlay(false);
   if(res?.ok) {
     showToast('✅ ย้ายข้อมูลสำเร็จ!', 'success');
@@ -3630,34 +3646,32 @@ async function testSheetsConnection() {
   statusEl.style.color = 'var(--text2)';
   statusEl.textContent = '🔄 กำลังทดสอบ...';
   try {
-    const res = await fetch(`${url}?action=ping`, {
-      method: 'GET',
-      redirect: 'follow',
+    // Use JSONP to bypass CORS
+    const cbName = '_ping_' + Date.now();
+    const pingResult = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => { delete window[cbName]; reject(new Error('Timeout — Apps Script ไม่ตอบสนองใน 10 วินาที')); }, 10000);
+      window[cbName] = (d) => { clearTimeout(t); delete window[cbName]; resolve(d); };
+      const s = document.createElement('script');
+      s.src = `${url}?action=ping&callback=${cbName}`;
+      s.onerror = () => { clearTimeout(t); delete window[cbName]; reject(new Error('ไม่พบ URL หรือ Script ไม่ได้ Deploy')); };
+      document.head.appendChild(s);
     });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch(e) { data = null; }
 
-    if(data && data.ok) {
+    if(pingResult && pingResult.ok) {
       statusEl.style.color = 'var(--green)';
-      statusEl.textContent = '✅ เชื่อมต่อสำเร็จ! ' + (data.message||'');
-    } else if(data && data.error) {
-      statusEl.style.color = 'var(--red)';
-      statusEl.textContent = '❌ Apps Script Error: ' + data.error;
+      statusEl.textContent = '✅ เชื่อมต่อสำเร็จ! ' + (pingResult.message||'') + (pingResult.time ? ' · ' + pingResult.time.slice(11,19) : '');
     } else {
       statusEl.style.color = 'var(--red)';
-      statusEl.textContent = '❌ Response ไม่ถูกต้อง — ตรวจสอบว่า Deploy แล้วหรือยัง\nResponse: ' + text.substring(0,100);
+      statusEl.textContent = '❌ ' + (pingResult?.error||'ไม่ทราบ error');
     }
   } catch(e) {
     statusEl.style.color = 'var(--red)';
-    if(e.message.includes('fetch') || e.message.includes('CORS') || e.message.includes('Failed')) {
-      statusEl.innerHTML = `❌ <strong>CORS Error</strong> — ตรวจสอบ:<br>
-        1. Deploy → Web App ครบแล้ว?<br>
-        2. "Execute as: Me" และ "Access: Anyone" ?<br>
-        3. กด "Deploy" ใหม่อีกครั้งหลังแก้โค้ด`;
-    } else {
-      statusEl.textContent = '❌ ' + e.message;
-    }
+    statusEl.innerHTML = `❌ <strong>${e.message}</strong><br>
+      <small>ตรวจสอบ:<br>
+      1. Deploy เป็น Web app แล้ว?<br>
+      2. "Who has access: <strong>Anyone</strong>" (ไม่ใช่ with Google account)<br>
+      3. Authorize access แล้ว?<br>
+      4. URL ถูกต้อง? (ควรขึ้นต้นด้วย https://script.google.com/macros/s/)</small>`;
   }
 }
 
