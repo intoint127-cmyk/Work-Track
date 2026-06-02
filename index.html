@@ -1394,7 +1394,8 @@ async function sheetsDeleteUser(id) {
   return await apiCall('deleteUser', {id}, 'GET');
 }
 async function sheetsVerifyLogin(username, pwdHash) {
-  return await apiCall('verifyLogin', {username, password: pwdHash}, 'GET');
+  // Use 'data' param to JSON-encode credentials — avoids URL special char issues
+  return await apiCall('verifyLogin', {data: {username, password: pwdHash}}, 'GET');
 }
 
 // AUDIT
@@ -1630,7 +1631,17 @@ async function doLogin() {
     document.getElementById('loginAlert').innerHTML = '<div class="alert">🔄 กำลังตรวจสอบ...</div>';
     const res = await sheetsVerifyLogin(u, h);
     if(!res || !res.ok) {
-      document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">⚠️ ' + (res?.error||'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง') + '</div>';
+      // Check if it might be a "user not in sheet yet" situation
+      const errMsg = res?.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+      let hint = '';
+      // Try local login as fallback — maybe data hasn't been migrated yet
+      const localUser = DB.users.find(x => x.username === u && (x.pwdHash === h || x.password === p));
+      if(localUser) {
+        hint = '<br><small>💡 พบในข้อมูล LocalStorage — กด <b>ตั้งค่า Google Sheets → ย้ายข้อมูลไป Sheets</b> ก่อน</small>';
+      } else {
+        hint = '<br><small>💡 ถ้าเพิ่งเชื่อม Google Sheets ให้กด <b>ตั้งค่า Google Sheets → ย้ายข้อมูลไป Sheets</b> ก่อน Login</small>';
+      }
+      document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">⚠️ ' + errMsg + hint + '</div>';
       return;
     }
     currentUser = { ...res.user, pwdHash: h };
