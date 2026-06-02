@@ -581,7 +581,7 @@ body { transition: background .3s, color .3s; }
   <div class="login-card">
     <div class="login-logo">
       <div class="icon">📋</div>
-      <div><h1>WorkTrack</h1><p>ระบบติดตามงานและเป้าหมาย</p></div>
+      <div><h1>WorkTrack</h1><p>ระบบติดตามงานและเป้าหมาย <span style="font-size:10px;opacity:0.5">v5.3</span></p></div>
     </div>
     <div id="loginAlert"></div>
     <div class="form-group">
@@ -1655,78 +1655,55 @@ function closeSidebar() {
 async function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
-  const h = simpleHash(p);
   const alertEl = document.getElementById('loginAlert');
 
-  // ── ขั้น 1: ตรวจสอบจาก LocalStorage ก่อนเสมอ (เร็ว ไม่ต้องรอ network)
-  // Find user: check hash first, then plaintext password as fallback
-  // Also ensure pwdHash is set (migrate old records)
-  let localUser = DB.users.find(x => x.username === u);
-  if(localUser) {
-    // Ensure pwdHash exists
-    if(!localUser.pwdHash && localUser.password) {
-      localUser.pwdHash = simpleHash(localUser.password);
-    }
-    // Check credentials
-    const passwordOk = (localUser.pwdHash && localUser.pwdHash === h) ||
-                       (localUser.password && localUser.password === p);
-    if(!passwordOk) localUser = null;
-  }
+  // ── ตรวจสอบจาก LocalStorage/seed อย่างเดียว (ไม่ contact Sheets ตอน login)
+  const h = simpleHash(p);
+  const found = DB.users.find(x => x.username === u);
 
-  if (localUser) {
-    // ✅ พบใน LocalStorage → login ทันที ไม่รอ network
-    currentUser = localUser;
-    // Sheets sync จะทำใน background หลัง app แสดงแล้ว
-
-  } else if (USE_SHEETS) {
-    // ── ขั้น 3: ไม่พบใน LocalStorage → ลองถามจาก Sheets
-    alertEl.innerHTML = '<div class="alert">🔄 กำลังตรวจสอบจาก Google Sheets...</div>';
-    const res = await sheetsVerifyLogin(u, h);
-    if (!res || !res.ok) {
-      alertEl.innerHTML = `<div class="alert alert-error">
-        ⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง
-        <br><small style="opacity:0.8">💡 ครั้งแรกที่เชื่อม Google Sheets:<br>
-        ให้ล้าง URL ออกก่อน → Login ด้วย LocalStorage → แล้วค่อยกด ย้ายข้อมูล</small>
-      </div>`;
-      return;
-    }
-    currentUser = { ...res.user, pwdHash: h };
-    await loadDBFromSheets();
-
-  } else {
-    // ── ขั้น 4: ไม่พบเลย
-    alertEl.innerHTML = '<div class="alert alert-error">⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>';
+  if (!found) {
+    alertEl.innerHTML = '<div class="alert alert-error">⚠️ ไม่พบชื่อผู้ใช้นี้ในระบบ</div>';
     return;
   }
 
-  // ✅ Login สำเร็จ — แสดง app ทันที
+  // ตรวจ password: plain text ก่อน (ง่ายสุด) แล้วค่อย hash
+  const plainOk = found.password === p;
+  // คำนวณ hash ใหม่จาก password ที่เก็บอยู่ เพื่อเทียบกับ h
+  const storedHash = found.pwdHash || (found.password ? simpleHash(found.password) : '');
+  const hashOk = storedHash === h;
+
+  if (!plainOk && !hashOk) {
+    alertEl.innerHTML = '<div class="alert alert-error">⚠️ รหัสผ่านไม่ถูกต้อง</div>';
+    return;
+  }
+
+  // ✅ Login สำเร็จ
+  found.pwdHash = h; // update hash
+  currentUser = found;
+  saveDB();
+
   alertEl.innerHTML = '';
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
-  saveDB();
   initApp();
 
-  // Sheets sync ทำใน background — ไม่ block การ login
-  if(USE_SHEETS) {
+  // Sheets sync ใน background — ไม่กระทบ login เลย
+  if (USE_SHEETS) {
     setTimeout(async () => {
       try {
-        showToast('🔄 กำลัง Sync กับ Google Sheets...', 'info');
         const r = await apiCall('syncAll', {
           data: { users: DB.users, tasks: DB.tasks, projects: DB.projects }
         }, 'GET');
-        if(r && r.ok) {
-          showToast('✅ Sync ข้อมูลไป Google Sheets สำเร็จ', 'success');
-          sheetsAddAudit('เข้าสู่ระบบ', currentUser.name + ' เข้าสู่ระบบ', currentUser.name);
-        } else {
-          showToast('⚠️ Sheets ตอบสนองแต่มีข้อผิดพลาด', 'warn');
-        }
+        if (r && r.ok) showToast('✅ Sync Google Sheets สำเร็จ', 'success');
       } catch(e) {
-        showToast('⚠️ ไม่สามารถ Sync Sheets ได้ตอนนี้ — ใช้ LocalStorage แทน', 'warn');
+        showToast('⚠️ Sync Sheets ล้มเหลว (ใช้ LocalStorage แทน)', 'warn');
       }
-    }, 2000);
+    }, 2500);
   }
 }
+
+
 function doLogout() {
   addAudit('ออกจากระบบ', `${currentUser.name} ออกจากระบบ`);
   saveDB();
@@ -1945,6 +1922,32 @@ function openAttachPreview(attachId, taskId) {
   document.body.appendChild(overlay);
 }
 
+
+function forceResetAndLogin(username, password) {
+  // Clear old localStorage and re-seed with correct hashes
+  localStorage.removeItem('worktrackDB_v5');
+  // Reload DB from seed (default DB in code)
+  // Re-initialize DB to default
+  const defaultUsers = [
+    { id:1, username:'admin',   password:'admin123' },
+    { id:2, username:'somchai', password:'1234' },
+    { id:3, username:'napat',   password:'1234' },
+    { id:4, username:'wanchai', password:'1234' },
+    { id:5, username:'priya',   password:'1234' },
+  ];
+  // Set fresh pwdHash on all default users in DB
+  if(DB && DB.users) {
+    DB.users.forEach(u => {
+      const def = defaultUsers.find(d => d.username === u.username);
+      if(def) u.pwdHash = simpleHash(def.password);
+    });
+    saveDB();
+  }
+  // Retry login
+  document.getElementById('loginUser').value = username;
+  document.getElementById('loginPass').value = password;
+  doLogin();
+}
 function initApp() {
   document.getElementById('sidebarName').textContent = currentUser.name;
   document.getElementById('sidebarRole').textContent = currentUser.role === 'admin' ? '👑 Admin' : '👤 User';
