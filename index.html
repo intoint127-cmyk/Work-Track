@@ -1234,7 +1234,7 @@ function jsonpCall(url, params) {
       delete window[cbName];
       if(script.parentNode) script.parentNode.removeChild(script);
       reject(new Error('JSONP timeout'));
-    }, 15000);
+    }, 8000);
 
     window[cbName] = function(data) {
       clearTimeout(timeout);
@@ -1674,20 +1674,9 @@ async function doLogin() {
   }
 
   if (localUser) {
-    // ✅ พบใน LocalStorage → login ได้เลย
+    // ✅ พบใน LocalStorage → login ทันที ไม่รอ network
     currentUser = localUser;
-
-    if (USE_SHEETS) {
-      // ── ขั้น 2: ถ้าเชื่อม Sheets อยู่ → sync users ไป Sheet แบบ background
-      alertEl.innerHTML = '<div class="alert">🔄 กำลัง Sync ข้อมูลไป Google Sheets...</div>';
-      // Sync users ก่อน (เพื่อให้ครั้งหน้า login ผ่าน Sheets ได้)
-      try {
-        await apiCall('syncAll', { data: { users: DB.users, tasks: [], projects: [] } }, 'GET');
-        showToast('✅ Sync users ไป Google Sheets แล้ว', 'success');
-      } catch(e) { /* ไม่ใช่ critical error */ }
-      // โหลดข้อมูลจาก Sheets
-      await loadDBFromSheets();
-    }
+    // Sheets sync จะทำใน background หลัง app แสดงแล้ว
 
   } else if (USE_SHEETS) {
     // ── ขั้น 3: ไม่พบใน LocalStorage → ลองถามจาก Sheets
@@ -1710,14 +1699,33 @@ async function doLogin() {
     return;
   }
 
-  // ✅ Login สำเร็จ
+  // ✅ Login สำเร็จ — แสดง app ทันที
   alertEl.innerHTML = '';
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
-  if(USE_SHEETS) sheetsAddAudit('เข้าสู่ระบบ', `${currentUser.name} เข้าสู่ระบบ`, currentUser.name);
   saveDB();
   initApp();
+
+  // Sheets sync ทำใน background — ไม่ block การ login
+  if(USE_SHEETS) {
+    setTimeout(async () => {
+      try {
+        showToast('🔄 กำลัง Sync กับ Google Sheets...', 'info');
+        const r = await apiCall('syncAll', {
+          data: { users: DB.users, tasks: DB.tasks, projects: DB.projects }
+        }, 'GET');
+        if(r && r.ok) {
+          showToast('✅ Sync ข้อมูลไป Google Sheets สำเร็จ', 'success');
+          sheetsAddAudit('เข้าสู่ระบบ', currentUser.name + ' เข้าสู่ระบบ', currentUser.name);
+        } else {
+          showToast('⚠️ Sheets ตอบสนองแต่มีข้อผิดพลาด', 'warn');
+        }
+      } catch(e) {
+        showToast('⚠️ ไม่สามารถ Sync Sheets ได้ตอนนี้ — ใช้ LocalStorage แทน', 'warn');
+      }
+    }, 2000);
+  }
 }
 function doLogout() {
   addAudit('ออกจากระบบ', `${currentUser.name} ออกจากระบบ`);
