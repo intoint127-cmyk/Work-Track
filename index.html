@@ -654,7 +654,7 @@ body { transition: background .3s, color .3s; }
           <div><div class="name" id="sidebarName"></div><div class="role" id="sidebarRole"></div></div>
         </div>
         <div id="connectionBanner" style="font-size:11px;text-align:center;padding:6px 8px;background:var(--bg3);border-radius:6px;margin-bottom:6px"></div>
-        <button class="btn btn-ghost" style="width:100%;margin-bottom:4px;font-size:11px" onclick="openSheetsConfig()">⚙️ ตั้งค่า Google Sheets</button>
+        <button id="sheetsConfigBtn" class="btn btn-ghost" style="width:100%;margin-bottom:4px;font-size:11px;display:none" onclick="openSheetsConfig()">⚙️ ตั้งค่า Google Sheets</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="doLogout()">🚪 ออกจากระบบ</button>
       </div>
     </nav>
@@ -1956,6 +1956,9 @@ function initApp() {
   document.getElementById('sidebarAvatar').className = `avatar ${currentUser.color}`;
   document.getElementById('sidebarAvatar').textContent = getInitials(currentUser.name);
   updateConnectionBanner();
+  // แสดงปุ่ม Sheets config เฉพาะ Admin
+  const sheetsBtn = document.getElementById('sheetsConfigBtn');
+  if(sheetsBtn) sheetsBtn.style.display = currentUser.role === 'admin' ? '' : 'none';
 
   if (currentUser.role === 'admin') {
     document.getElementById('adminNav').style.display = 'block';
