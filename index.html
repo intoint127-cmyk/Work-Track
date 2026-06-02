@@ -597,8 +597,17 @@ body { transition: background .3s, color .3s; }
     <div class="login-demo" style="margin-top:16px">
       <strong>บัญชีทดสอบ:</strong><br>
       👑 Admin: <strong>admin</strong> / <strong>admin123</strong><br>
-      👤 User: <strong>somchai</strong> / <strong>1234</strong> &nbsp;|&nbsp; <strong>napat</strong> / <strong>1234</strong>
+      👤 User: <strong>somchai</strong> / <strong>1234</strong> &nbsp;|&nbsp; <strong>napat</strong> / <strong>1234</strong><br>
+      <span id="sheetsLoginNote" style="font-size:11px;color:#f0c040;display:none">
+        ⚠️ เชื่อม Google Sheets อยู่ — Login ด้วย LocalStorage ได้เลย ระบบจะ Sync อัตโนมัติ
+      </span>
     </div>
+    <script>
+      if(localStorage.getItem('worktrack_script_url')) {
+        const n = document.getElementById('sheetsLoginNote');
+        if(n) n.style.display = 'block';
+      }
+    </script>
   </div>
 </div>
 
@@ -1626,37 +1635,50 @@ async function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   const h = simpleHash(p);
+  const alertEl = document.getElementById('loginAlert');
 
-  if(USE_SHEETS) {
-    document.getElementById('loginAlert').innerHTML = '<div class="alert">🔄 กำลังตรวจสอบ...</div>';
+  // ── ขั้น 1: ตรวจสอบจาก LocalStorage ก่อนเสมอ (เร็ว ไม่ต้องรอ network)
+  const localUser = DB.users.find(x => x.username === u && (x.pwdHash === h || x.password === p));
+
+  if (localUser) {
+    // ✅ พบใน LocalStorage → login ได้เลย
+    currentUser = localUser;
+
+    if (USE_SHEETS) {
+      // ── ขั้น 2: ถ้าเชื่อม Sheets อยู่ → sync users ไป Sheet แบบ background
+      alertEl.innerHTML = '<div class="alert">🔄 กำลัง Sync ข้อมูลไป Google Sheets...</div>';
+      // Sync users ก่อน (เพื่อให้ครั้งหน้า login ผ่าน Sheets ได้)
+      try {
+        await apiCall('syncAll', { data: { users: DB.users, tasks: [], projects: [] } }, 'GET');
+        showToast('✅ Sync users ไป Google Sheets แล้ว', 'success');
+      } catch(e) { /* ไม่ใช่ critical error */ }
+      // โหลดข้อมูลจาก Sheets
+      await loadDBFromSheets();
+    }
+
+  } else if (USE_SHEETS) {
+    // ── ขั้น 3: ไม่พบใน LocalStorage → ลองถามจาก Sheets
+    alertEl.innerHTML = '<div class="alert">🔄 กำลังตรวจสอบจาก Google Sheets...</div>';
     const res = await sheetsVerifyLogin(u, h);
-    if(!res || !res.ok) {
-      // Check if it might be a "user not in sheet yet" situation
-      const errMsg = res?.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-      let hint = '';
-      // Try local login as fallback — maybe data hasn't been migrated yet
-      const localUser = DB.users.find(x => x.username === u && (x.pwdHash === h || x.password === p));
-      if(localUser) {
-        hint = '<br><small>💡 พบในข้อมูล LocalStorage — กด <b>ตั้งค่า Google Sheets → ย้ายข้อมูลไป Sheets</b> ก่อน</small>';
-      } else {
-        hint = '<br><small>💡 ถ้าเพิ่งเชื่อม Google Sheets ให้กด <b>ตั้งค่า Google Sheets → ย้ายข้อมูลไป Sheets</b> ก่อน Login</small>';
-      }
-      document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">⚠️ ' + errMsg + hint + '</div>';
+    if (!res || !res.ok) {
+      alertEl.innerHTML = `<div class="alert alert-error">
+        ⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง
+        <br><small style="opacity:0.8">💡 ครั้งแรกที่เชื่อม Google Sheets:<br>
+        ให้ล้าง URL ออกก่อน → Login ด้วย LocalStorage → แล้วค่อยกด ย้ายข้อมูล</small>
+      </div>`;
       return;
     }
     currentUser = { ...res.user, pwdHash: h };
-    document.getElementById('loginAlert').innerHTML = '<div class="alert">🔄 กำลังโหลดข้อมูล...</div>';
     await loadDBFromSheets();
+
   } else {
-    const user = DB.users.find(x => x.username === u && (x.pwdHash === h || x.password === p));
-    if (!user) {
-      document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>';
-      return;
-    }
-    currentUser = user;
+    // ── ขั้น 4: ไม่พบเลย
+    alertEl.innerHTML = '<div class="alert alert-error">⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>';
+    return;
   }
 
-  document.getElementById('loginAlert').innerHTML = '';
+  // ✅ Login สำเร็จ
+  alertEl.innerHTML = '';
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
