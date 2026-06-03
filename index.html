@@ -594,16 +594,14 @@ body { transition: background .3s, color .3s; }
     </div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
     <div class="security-badge">🔒 รหัสผ่านถูก hash ด้วย SHA-256</div>
-    <!-- 
     <div class="login-demo" style="margin-top:16px">
-    <strong>บัญชีทดสอบ:</strong><br>
+      <strong>บัญชีทดสอบ:</strong><br>
       👑 Admin: <strong>admin</strong> / <strong>admin123</strong><br>
       👤 User: <strong>somchai</strong> / <strong>1234</strong> &nbsp;|&nbsp; <strong>napat</strong> / <strong>1234</strong>
     </div>
-    <button onclick="emergencyReset()" style="margin-top:12px;width:100%;padding:10px;background:#f85149;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">      🔧 Login ไม่ได้? กดที่นี่เพื่อ Reset และ Login
+    <button onclick="emergencyReset()" style="margin-top:12px;width:100%;padding:10px;background:#f85149;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">
+      🔧 Login ไม่ได้? กดที่นี่เพื่อ Reset และ Login
     </button>
-      -->
-  
     <script>
     function emergencyReset() {
       localStorage.removeItem('worktrackDB_v5');
@@ -1692,6 +1690,9 @@ async function doLogin() {
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
   initApp();
 
+  // บันทึก session (ไว้ restore หลัง refresh)
+  try { sessionStorage.setItem('wt_session', JSON.stringify({id: currentUser.id, username: currentUser.username})); } catch(e) {}
+
   // Sheets sync ใน background — ไม่กระทบ login เลย
   if (USE_SHEETS) {
     setTimeout(async () => {
@@ -1711,6 +1712,7 @@ async function doLogin() {
 function doLogout() {
   addAudit('ออกจากระบบ', `${currentUser.name} ออกจากระบบ`);
   saveDB();
+  try { sessionStorage.removeItem('wt_session'); } catch(e) {}
   currentUser = null;
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -3768,6 +3770,25 @@ async function reloadFromSheets() {
 
 // Auto-load SCRIPT_URL from localStorage if exists
 // URL loaded from localStorage at module init via _effectiveUrl
+</script>
+
+<script>
+// Auto-restore session after refresh
+(function() {
+  try {
+    const sess = sessionStorage.getItem('wt_session');
+    if (!sess) return;
+    const { id } = JSON.parse(sess);
+    const user = DB.users.find(u => u.id === id);
+    if (!user) return;
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    initApp();
+  } catch(e) {
+    sessionStorage.removeItem('wt_session');
+  }
+})();
 </script>
 </body>
 </html>
