@@ -594,17 +594,16 @@ body { transition: background .3s, color .3s; }
     </div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
     <div class="security-badge">🔒 รหัสผ่านถูก hash ด้วย SHA-256</div>
-   <!-- 
+    <!--
     <div class="login-demo" style="margin-top:16px">
-      
-          <strong>บัญชีทดสอบ:</strong><br>
+      <strong>บัญชีทดสอบ:</strong><br>
       👑 Admin: <strong>admin</strong> / <strong>admin123</strong><br>
       👤 User: <strong>somchai</strong> / <strong>1234</strong> &nbsp;|&nbsp; <strong>napat</strong> / <strong>1234</strong>
     </div>
     <button onclick="emergencyReset()" style="margin-top:12px;width:100%;padding:10px;background:#f85149;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">
       🔧 Login ไม่ได้? กดที่นี่เพื่อ Reset และ Login
     </button>
-    --> 
+    -->
     <script>
     function emergencyReset() {
       localStorage.removeItem('worktrackDB_v5');
@@ -2049,7 +2048,7 @@ function showPage(page) {
   const notifBtn = `<div style="position:relative"><button class="notif-btn" id="notifBtn" onclick="toggleNotif()">🔔<span class="notif-dot" id="notifDot"></span></button><div class="notif-panel" id="notifPanel"><div class="notif-header"><span>การแจ้งเตือน</span><button class="btn-close" onclick="clearNotifs()">✕</button></div><div id="notifList"></div></div></div>`;
   if (page==='tasks' && currentUser.role==='admin') ta.innerHTML = `<button class="btn btn-primary" onclick="openAddTaskModal()">➕ เพิ่มงาน</button>${notifBtn}`;
   else if (page==='myTasks') ta.innerHTML = `<button class="btn btn-primary" onclick="openAddTaskModal()">➕ เพิ่มงาน</button>${notifBtn}`;
-  else if (page==='projects' && currentUser.role==='admin') ta.innerHTML = `<button class="btn btn-primary" onclick="openAddProjectModal()">➕ สร้าง Project</button>${notifBtn}`;
+  else if (page==='projects') ta.innerHTML = `<button class="btn btn-primary" onclick="openAddProjectModal()">➕ สร้าง Project</button>${notifBtn}`;
   else ta.innerHTML = notifBtn;
 
   updateNotifBadge();
@@ -3309,7 +3308,7 @@ function saveProject() {
     if (p) { p.name=name; p.desc=document.getElementById('projectDesc').value; p.start=document.getElementById('projectStart').value; p.due=document.getElementById('projectDue').value; p.color=selectedProjectColor; }
     addAudit('แก้ไข Project', `${currentUser.name} แก้ไข "${name}"`);
   } else {
-    DB.projects.push({ id: DB.nextProjectId++, name, desc: document.getElementById('projectDesc').value, start: document.getElementById('projectStart').value, due: document.getElementById('projectDue').value, color: selectedProjectColor, createdAt: today() });
+    DB.projects.push({ id: DB.nextProjectId++, name, desc: document.getElementById('projectDesc').value, start: document.getElementById('projectStart').value, due: document.getElementById('projectDue').value, color: selectedProjectColor, createdAt: today(), createdBy: currentUser.id });
     addAudit('สร้าง Project', `${currentUser.name} สร้าง "${name}"`);
   }
   saveDB(); updateProjBadge(); closeModal('projectModal'); renderProjectsPage();
@@ -3317,7 +3316,12 @@ function saveProject() {
 }
 function deleteProject(id) {
   const p = getProject(id); if (!p) return;
-  if (!confirm(`ลบ Project "${p.name}"?\nงานในโปรเจกต์ยังคงอยู่`)) return;
+  // Admin ลบได้ทุก project, User ลบได้เฉพาะที่ตัวเองสร้าง
+  if (currentUser.role !== 'admin' && p.createdBy !== currentUser.id) {
+    alert('ไม่สามารถลบได้ — คุณไม่ใช่ผู้สร้าง Project นี้'); return;
+  }
+  if (!confirm(`ลบ Project "${p.name}"?
+งานในโปรเจกต์ยังคงอยู่`)) return;
   DB.projects = DB.projects.filter(x => x.id !== id);
   DB.tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
   addAudit('ลบ Project', `${currentUser.name} ลบ "${p.name}"`);
@@ -3341,8 +3345,8 @@ function renderProjectsPage() {
           ${daysLeft!==null ? `<span style="font-size:11px;color:${daysLeft<0?'var(--red)':daysLeft<=7?'var(--yellow2)':'var(--text3)'}">${daysLeft<0?'⚠️ เกิน '+Math.abs(daysLeft)+' วัน':'📅 เหลือ '+daysLeft+' วัน'}</span>` : ''}
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openEditProjectModal(${p.id})">✏️</button>
-          <button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="deleteProject(${p.id})">🗑</button>
+          ${(currentUser.role==='admin'||p.createdBy===currentUser.id)?`<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openEditProjectModal(${p.id})">✏️</button>`:''}
+          ${(currentUser.role==='admin'||p.createdBy===currentUser.id)?`<button class="btn btn-danger" style="padding:4px 10px;font-size:12px" onclick="deleteProject(${p.id})">🗑</button>`:''}
         </div>
       </div>
       <div class="card-body">
