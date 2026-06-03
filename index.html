@@ -595,13 +595,15 @@ body { transition: background .3s, color .3s; }
     <button class="btn btn-primary btn-full" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
     <div class="security-badge">🔒 รหัสผ่านถูก hash ด้วย SHA-256</div>
     <div class="login-demo" style="margin-top:16px">
-   <! <strong>บัญชีทดสอบ:</strong><br>
+      <p style="display: none;">
+    <strong>บัญชีทดสอบ:</strong><br>
       👑 Admin: <strong>admin</strong> / <strong>admin123</strong><br>
       👤 User: <strong>somchai</strong> / <strong>1234</strong> &nbsp;|&nbsp; <strong>napat</strong> / <strong>1234</strong>
     </div>
     <button onclick="emergencyReset()" style="margin-top:12px;width:100%;padding:10px;background:#f85149;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">
       🔧 Login ไม่ได้? กดที่นี่เพื่อ Reset และ Login
     </button> >
+  </p>
     <script>
     function emergencyReset() {
       localStorage.removeItem('worktrackDB_v5');
