@@ -233,7 +233,7 @@ tr:hover td { background:rgba(255,255,255,0.02); }
 .comment-bubble { background:var(--bg3); border-radius:10px; padding:10px 12px; flex:1; border:1px solid var(--border); }
 .comment-meta { font-size:11px; color:var(--text3); margin-bottom:4px; }
 .comment-body { font-size:13px; }
-.comment-input-wrap { display:flex; gap:8px; margin-top:12px; align-items:flex-start; }
+.comment-input-wrap { display:flex; gap:8px; margin-top:12px; align-items:flex-start; position:relative; }
 .comment-input-wrap textarea { flex:1; padding:8px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Sarabun',sans-serif; font-size:13px; outline:none; resize:none; transition:border-color .2s; }
 .comment-input-wrap textarea:focus { border-color:var(--accent2); }
 
@@ -380,9 +380,9 @@ body { transition: background .3s, color .3s; }
 
 /* MENTION */
 .mention{color:var(--accent);font-weight:600;cursor:pointer}
-.mention-dropdown{position:absolute;bottom:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:300;min-width:200px;display:none}
+.mention-dropdown{position:absolute;bottom:calc(100% + 2px);left:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:300;min-width:200px;display:none}
 .mention-dropdown.show{display:block}
-.mention-opt{padding:8px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+.mention-opt{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px;border-radius:6px;margin:2px 4px;transition:background 0.1s}.mention-opt:hover{background:var(--bg4)}
 .mention-opt:hover{background:var(--bg3)}
 .comment-input-wrap{position:relative}
 
@@ -2456,10 +2456,12 @@ function showTaskDetail(id) {
       ${(t.comments||[]).map(c=>{const cu=getUser(c.userId);return '<div class="comment-item">'+(cu?avatarHtml(cu,32):'<div class="avatar av-blue" style="width:32px;height:32px;font-size:12px">?</div>')+'<div class="comment-bubble"><div class="comment-meta">'+(cu?cu.name:'ไม่ทราบ')+' · '+formatDate(c.date)+'</div><div class="comment-body">'+renderMentions(c.text)+'</div></div></div>';}).join('')}
       ${(t.comments||[]).length===0?'<div style="color:var(--text3);font-size:12px;margin-bottom:8px">ยังไม่มีความคิดเห็น</div>':''}
     </div>
-    <div class="comment-input-wrap" style="position:relative">
-      <textarea id="commentInput_${t.id}" rows="2" placeholder="เขียนความคิดเห็น... (พิมพ์ @ เพื่อ mention)" oninput="checkMention(this,${t.id})"></textarea>
-      <div id="mentionDrop_${t.id}" class="mention-dropdown" style="display:none"></div>
-      <button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="addComment(${t.id})">ส่ง</button>
+    <div class="comment-input-wrap">
+      <div style="flex:1;position:relative">
+        <textarea id="commentInput_${t.id}" rows="2" placeholder="เขียนความคิดเห็น... (พิมพ์ @ เพื่อ mention)" oninput="checkMention(this,${t.id})" style="width:100%"></textarea>
+        <div id="mentionDrop_${t.id}" class="mention-dropdown"></div>
+      </div>
+      <button class="btn btn-primary" style="padding:8px 14px;font-size:12px;flex-shrink:0" onclick="addComment(${t.id})">ส่ง</button>
     </div>
   `;
   document.getElementById('taskDetailFooter').innerHTML = canEdit
@@ -3574,24 +3576,38 @@ function checkMention(ta, taskId) {
   const text = ta.value; const cursor = ta.selectionStart;
   const before = text.substring(0, cursor);
   const atIdx = before.lastIndexOf('@');
-  const drop = document.getElementById(`mentionDrop_${taskId}`); if (!drop) return;
-  if (atIdx>=0 && !before.substring(atIdx).includes(' ')) {
-    const q = before.substring(atIdx+1).toLowerCase();
-    const matches = DB.users.filter(u => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
+  const drop = document.getElementById('mentionDrop_' + taskId); if (!drop) return;
+  if (atIdx >= 0 && !before.substring(atIdx).includes(' ')) {
+    const q = before.substring(atIdx + 1).toLowerCase();
+    // แสดงทุกคนเมื่อพิมพ์ @ อย่างเดียว, กรองเมื่อพิมพ์ต่อ
+    const matches = DB.users.filter(u =>
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.username.toLowerCase().includes(q)
+    );
     if (matches.length) {
-      drop.className = 'mention-dropdown show';
-      drop.innerHTML = matches.map(u => `<div class="mention-opt" onclick="insertMention(${taskId},'${u.username}')">${avatarHtml(u,20)} ${u.name}</div>`).join('');
+      drop.classList.add('show');
+      drop.innerHTML = matches.map(u =>
+        `<div class="mention-opt" onmousedown="insertMention(${taskId},'${u.username}');return false;">
+          ${avatarHtml(u, 22)}
+          <span style="margin-left:6px">
+            <span style="font-weight:600">${u.name}</span>
+            <span style="color:var(--text3);font-size:11px;margin-left:4px">@${u.username}</span>
+          </span>
+        </div>`
+      ).join('');
       return;
     }
   }
-  drop.className = 'mention-dropdown'; drop.innerHTML = '';
+  drop.classList.remove('show');
+  drop.innerHTML = '';
 }
 function insertMention(taskId, username) {
   const ta = document.getElementById(`commentInput_${taskId}`); if (!ta) return;
   const text = ta.value; const cursor = ta.selectionStart;
   const before = text.substring(0, cursor); const atIdx = before.lastIndexOf('@');
   ta.value = text.substring(0,atIdx) + '@' + username + ' ' + text.substring(cursor);
-  const drop = document.getElementById(`mentionDrop_${taskId}`); if (drop) { drop.className='mention-dropdown'; drop.innerHTML=''; }
+  const drop = document.getElementById('mentionDrop_' + taskId); if (drop) { drop.classList.remove('show'); drop.innerHTML=''; }
   ta.focus();
 }
 
