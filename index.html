@@ -233,12 +233,71 @@ tr:hover td { background:rgba(255,255,255,0.02); }
 .comment-list { margin-top:12px; }
 .comment-item { display:flex; gap:10px; margin-bottom:14px; }
 .comment-bubble { background:var(--bg3); border-radius:10px; padding:10px 12px; flex:1; border:1px solid var(--border); }
-.comment-meta { font-size:11px; color:var(--text3); margin-bottom:4px; }
+.comment-meta { font-size:11px; color:var(--text3); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.comment-meta-right { margin-left:auto; display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+.comment-item:hover .comment-meta-right { opacity:1; }
+.comment-delete-btn { background:none; border:none; cursor:pointer; color:var(--text3); font-size:12px; padding:1px 5px; border-radius:4px; transition:all .15s; }
+.comment-delete-btn:hover { background:rgba(248,81,73,.12); color:var(--red); }
 .comment-body { font-size:13px; }
 .comment-input-wrap { display:flex; gap:8px; margin-top:12px; align-items:flex-start; position:relative; }
 .comment-input-wrap textarea { flex:1; padding:8px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Sarabun',sans-serif; font-size:13px; outline:none; resize:none; transition:border-color .2s; }
 .comment-input-wrap textarea:focus { border-color:var(--accent2); }
 
+/* EMOJI REACTIONS */
+.reaction-bar { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; align-items:center; }
+.reaction-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:20px; font-size:12px; cursor:pointer;
+  background:var(--bg4); border:1.5px solid var(--border);
+  transition:all .15s; user-select:none; font-family:'Sarabun',sans-serif;
+}
+.reaction-badge:hover { border-color:var(--accent); background:var(--accent-bg); transform:scale(1.08); }
+.reaction-badge.mine { background:var(--accent-bg); border-color:var(--accent); color:var(--accent); }
+.reaction-badge.mine .rxn-count { font-weight:700; }
+.reaction-badge .rxn-emoji { font-size:14px; line-height:1; }
+.reaction-badge .rxn-count { font-size:11px; font-weight:600; color:var(--text2); min-width:8px; }
+.reaction-badge.mine .rxn-count { color:var(--accent); }
+@keyframes rxn-pop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 70%{transform:scale(.9)} 100%{transform:scale(1)} }
+.reaction-badge.pop { animation:rxn-pop .3s ease; }
+
+.rxn-add-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:14px; font-size:14px;
+  background:transparent; border:1.5px dashed var(--border);
+  cursor:pointer; color:var(--text3); transition:all .15s; position:relative;
+}
+.rxn-add-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+
+/* Emoji Picker */
+.rxn-picker {
+  position:absolute; z-index:800;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:14px; padding:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.45);
+  display:none; flex-wrap:wrap; gap:4px; width:224px;
+}
+.rxn-picker.show { display:flex; }
+.rxn-picker-emoji {
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  font-size:20px; border-radius:8px; cursor:pointer;
+  transition:background .1s, transform .1s; border:none; background:transparent;
+}
+.rxn-picker-emoji:hover { background:var(--bg3); transform:scale(1.2); }
+
+/* CUSTOM FIELDS */
+.cf-row { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--bg3); border-radius:8px; margin-bottom:6px; border:1px solid var(--border); }
+.cf-label { font-size:12px; font-weight:600; color:var(--text2); min-width:110px; }
+.cf-value { flex:1; font-size:13px; color:var(--text1); }
+.cf-value input, .cf-value select, .cf-value textarea { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:5px 9px; font-size:13px; color:var(--text1); }
+.cf-manage-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.cf-type-badge { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--bg4); color:var(--text2); flex-shrink:0; }
+/* TIME LOG */
+.tl-row { display:flex; align-items:center; gap:8px; padding:7px 12px; background:var(--bg3); border-radius:8px; margin-bottom:5px; font-size:12px; }
+.tl-duration { font-weight:700; color:var(--accent2); min-width:60px; }
+.tl-note { flex:1; color:var(--text2); }
+.tl-date { color:var(--text3); flex-shrink:0; }
+.tl-del { background:none; border:none; cursor:pointer; color:var(--text3); padding:2px 5px; border-radius:4px; }
+.tl-del:hover { background:rgba(248,81,73,.12); color:var(--red); }
 /* WORKLOAD */
 .workload-bar-wrap { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
 .workload-label { font-size:12px; min-width:100px; }
@@ -1023,9 +1082,17 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
       <div><h1>WorkTrack</h1><p>ระบบติดตามงานและเป้าหมาย <span style="font-size:11px;background:#238636;color:#fff;padding:1px 6px;border-radius:4px;font-weight:700">v5.4</span></p></div>
     </div>
     <div id="loginAlert"></div>
-    <div class="form-group">
-      <label>ชื่อผู้ใช้</label>
-      <input type="text" id="loginUser" placeholder="กรอกชื่อผู้ใช้" autocomplete="username">
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="loginTabUser"  class="btn btn-primary" style="flex:1;font-size:13px" onclick="switchLoginTab('user')">📱 เบอร์โทร (User)</button>
+      <button id="loginTabAdmin" class="btn btn-ghost"   style="flex:1;font-size:13px" onclick="switchLoginTab('admin')">👑 Admin</button>
+    </div>
+    <div id="loginFieldUser" class="form-group">
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="loginPhone" placeholder="เช่น 0812345678" autocomplete="tel" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:1px">
+    </div>
+    <div id="loginFieldAdmin" class="form-group" style="display:none">
+      <label>ชื่อผู้ใช้ (Admin)</label>
+      <input type="text" id="loginUser" placeholder="กรอกชื่อผู้ใช้" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="form-group">
       <label>รหัสผ่าน</label>
@@ -1605,8 +1672,12 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>บทบาท</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+        <div class="form-group"><label>บทบาท</label><select id="newUserRole" onchange="togglePhoneField(this.value)"><option value="user">User</option><option value="admin">Admin</option></select></div>
         <div class="form-group"><label>แผนก</label><input type="text" id="newUserDept" placeholder="เช่น IT, Marketing"></div>
+      </div>
+      <div class="form-group" id="phoneFieldGroup">
+        <label>เบอร์โทรศัพท์ <span style="color:var(--red)">*</span> <span style="font-size:11px;color:var(--text3)">(ใช้ Login แทน Username)</span></label>
+        <input type="tel" id="newUserPhone" placeholder="เช่น 0812345678" style="letter-spacing:1px">
       </div>
     </div>
     <div class="modal-footer">
@@ -1679,10 +1750,10 @@ function simpleHash(s) {
 let DB = {
   users: [
     { id:1, name:'ผู้ดูแลระบบ',  username:'admin',   password:'admin123', pwdHash:'g10hvh', role:'admin', position:'System Admin', dept:'IT',  color:'av-red'    },
-    { id:2, name:'สมชาย ใจดี',  username:'somchai', password:'1234',      pwdHash:'wcoy',  role:'user',  position:'Developer',    dept:'IT',  color:'av-blue'   },
-    { id:3, name:'นภัส สว่าง',  username:'napat',   password:'1234',      pwdHash:'wcoy',  role:'user',  position:'Designer',     dept:'UX',  color:'av-green'  },
-    { id:4, name:'วันชัย มีสุข', username:'wanchai', password:'1234',      pwdHash:'wcoy',  role:'user',  position:'PM',           dept:'PM',  color:'av-purple' },
-    { id:5, name:'ปรียา ดาวดี', username:'priya',   password:'1234',      pwdHash:'wcoy',  role:'user',  position:'QA Engineer',  dept:'QA',  color:'av-orange' },
+    { id:2, name:'สมชาย ใจดี',  username:'somchai', password:'1234', pwdHash:'wcoy', role:'user', position:'Developer',   dept:'IT', color:'av-blue',   phone:'0811111111' },
+    { id:3, name:'นภัส สว่าง',  username:'napat',   password:'1234', pwdHash:'wcoy', role:'user', position:'Designer',    dept:'UX', color:'av-green',  phone:'0822222222' },
+    { id:4, name:'วันชัย มีสุข', username:'wanchai', password:'1234', pwdHash:'wcoy', role:'user', position:'PM',          dept:'PM', color:'av-purple', phone:'0833333333' },
+    { id:5, name:'ปรียา ดาวดี', username:'priya',   password:'1234', pwdHash:'wcoy', role:'user', position:'QA Engineer', dept:'QA', color:'av-orange', phone:'0844444444' },
   ],
   projects: [
     { id:1, name:'Release v3.0',  desc:'เตรียม release version 3.0', start:'2025-01-01', due:'2025-06-30', color:'#58a6ff', createdAt:'2025-01-01' },
@@ -1701,6 +1772,8 @@ let DB = {
   nextTaskId: 9, nextUserId: 6, nextProjectId: 3,
   auditLog: [], notifications: [], archive: [], snapshots: [],
   activeTimers: {},
+  customFields: [],
+  nextCfId: 1,
 };
 
 let currentUser = null, editingProjectId = null, selectedProjectColor = '#58a6ff', currentTheme = 'dark', currentAccent = 'blue', kbdGKey = null;
@@ -1718,13 +1791,20 @@ function loadDB() {
       // Migration: ensure all users have pwdHash
       if(DB.users) {
         DB.users.forEach(u => {
-          if(!u.pwdHash && u.password) {
-            u.pwdHash = simpleHash(u.password);
-          }
+          if(!u.pwdHash && u.password) u.pwdHash = simpleHash(u.password);
         });
-        // Save migrated data back
-        try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {}
       }
+      // Migration: new fields
+      if (!DB.customFields)  DB.customFields  = [];
+      if (!DB.nextCfId)      DB.nextCfId      = (DB.customFields.length ? Math.max(...DB.customFields.map(f=>f.id)) + 1 : 1);
+      if (!DB.activeTimers)  DB.activeTimers  = {};
+      DB.tasks && DB.tasks.forEach(t => {
+        if (!t.timeLog)     t.timeLog     = [];
+        if (!t.customData)  t.customData  = {};
+        if (!t.subtasks)    t.subtasks    = [];
+        if (!t.reactions)   t.reactions   = {};
+      });
+      try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {}
     }
   } catch(e) {
     console.warn('loadDB error, resetting:', e);
@@ -2184,17 +2264,43 @@ function closeSidebar() {
 // ============================================================
 // AUTH
 // ============================================================
+function switchLoginTab(tab) {
+  const isUser = tab === 'user';
+  document.getElementById('loginFieldUser').style.display  = isUser ? '' : 'none';
+  document.getElementById('loginFieldAdmin').style.display = isUser ? 'none' : '';
+  document.getElementById('loginTabUser').className  = 'btn ' + (isUser  ? 'btn-primary' : 'btn-ghost') + ' ' + 'flex:1;font-size:13px';
+  document.getElementById('loginTabAdmin').className = 'btn ' + (!isUser ? 'btn-primary' : 'btn-ghost') + ' ' + 'flex:1;font-size:13px';
+  // re-apply inline styles (className above stomps them)
+  document.getElementById('loginTabUser').style.cssText  = 'flex:1;font-size:13px';
+  document.getElementById('loginTabAdmin').style.cssText = 'flex:1;font-size:13px';
+}
+
 async function doLogin() {
-  const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   const alertEl = document.getElementById('loginAlert');
-
-  // ── ตรวจสอบจาก LocalStorage/seed อย่างเดียว (ไม่ contact Sheets ตอน login)
+  const isAdminTab = document.getElementById('loginFieldAdmin').style.display !== 'none';
   const h = simpleHash(p);
-  const found = DB.users.find(x => x.username === u);
+
+  let found;
+  if (isAdminTab) {
+    const u = document.getElementById('loginUser').value.trim();
+    found = DB.users.find(x => x.username === u && x.role === 'admin');
+    if (!found) {
+      alertEl.innerHTML = '<div class="alert alert-error">⚠️ ไม่พบ Admin ชื่อนี้ในระบบ</div>';
+      return;
+    }
+  } else {
+    const phone = document.getElementById('loginPhone').value.trim().replace(/\D/g, '');
+    if (!phone) { alertEl.innerHTML = '<div class="alert alert-error">⚠️ กรุณากรอกเบอร์โทรศัพท์</div>'; return; }
+    found = DB.users.find(x => x.role !== 'admin' && x.phone && x.phone.replace(/\D/g,'') === phone);
+    if (!found) {
+      alertEl.innerHTML = '<div class="alert alert-error">⚠️ ไม่พบเบอร์โทรนี้ในระบบ</div>';
+      return;
+    }
+  }
 
   if (!found) {
-    alertEl.innerHTML = '<div class="alert alert-error">⚠️ ไม่พบชื่อผู้ใช้นี้ในระบบ</div>';
+    alertEl.innerHTML = '<div class="alert alert-error">⚠️ ไม่พบผู้ใช้ในระบบ</div>';
     return;
   }
 
@@ -3581,14 +3687,7 @@ function showTaskDetail(id) {
       </div>`:''}
     </div>`;
 
-  const logged = totalLogged(t);
-  const timeHtml = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--bg3);border-radius:8px;padding:10px 14px">
-      <span style="font-size:13px;color:var(--text2)">⏱ เวลาที่บันทึก:</span>
-      <span style="font-weight:700;font-size:14px">${fmtHours(logged)}</span>
-      ${t.estimate?`<span style="color:var(--text3);font-size:12px">/ ประมาณ ${fmtHours(t.estimate*60)}</span>`:''}
-      <span style="margin-left:auto">${renderTimerBtn(t.id)}</span>
-    </div>`;
+  const timeHtml = renderTimeLogSection(t);
 
   const depsHtml = (blockedBy.length||blocking.length) ? `
     <div style="margin-bottom:14px">
@@ -3627,6 +3726,7 @@ function showTaskDetail(id) {
     </div>
     ${timeHtml}
     ${subHtml}
+    ${renderCustomFieldsView(t)}
     ${renderAttachments(t)}
     ${t.note?`<div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:13px;margin-bottom:16px"><strong>📋 หมายเหตุ:</strong><br>${t.note}</div>`:''}
     ${t.history&&t.history.length?`
@@ -3638,8 +3738,7 @@ function showTaskDetail(id) {
     <hr class="divider">
     <div style="margin-bottom:10px;font-weight:600">💬 ความคิดเห็น (${(t.comments||[]).length})</div>
     <div class="comment-list" id="commentList_${t.id}">
-      ${(t.comments||[]).map(c=>{const cu=getUser(c.userId);return '<div class="comment-item">'+(cu?avatarHtml(cu,32):'<div class="avatar av-blue" style="width:32px;height:32px;font-size:12px">?</div>')+'<div class="comment-bubble"><div class="comment-meta">'+(cu?cu.name:'ไม่ทราบ')+' · '+formatDate(c.date)+'</div><div class="comment-body">'+renderMentions(c.text)+'</div></div></div>';}).join('')}
-      ${(t.comments||[]).length===0?'<div style="color:var(--text3);font-size:12px;margin-bottom:8px">ยังไม่มีความคิดเห็น</div>':''}
+      ${renderComments(t)}
     </div>
     <div class="comment-input-wrap">
       <div style="flex:1;position:relative">
@@ -3659,13 +3758,163 @@ function showTaskDetail(id) {
   openModal('taskDetailModal');
 }
 
+// ============================================================
+// COMMENT RENDER (with reactions)
+// ============================================================
+const RXN_EMOJIS = ['👍','❤️','😄','🎉','🚀','👏','🔥','😮','😢','🙏','✅','💯'];
+
+function renderComments(t) {
+  if (!(t.comments||[]).length) return '<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px 0">ยังไม่มีความคิดเห็น</div>';
+  return (t.comments).map((c, idx) => {
+    const cu       = getUser(c.userId);
+    const isOwn    = c.userId === currentUser.id;
+    const reactions= c.reactions || {};
+    // Build reaction badges
+    const rxnBadges = Object.entries(reactions)
+      .filter(([,users]) => users.length > 0)
+      .map(([emoji, users]) => {
+        const mine = users.includes(currentUser.id);
+        return `<button class="reaction-badge${mine?' mine':''}"
+          onclick="toggleReaction(${t.id},${idx},'${emoji}')"
+          title="${users.map(uid=>(getUser(uid)||{name:'?'}).name).join(', ')}">
+          <span class="rxn-emoji">${emoji}</span>
+          <span class="rxn-count">${users.length}</span>
+        </button>`;
+      }).join('');
+
+    return `<div class="comment-item" id="comment_${t.id}_${idx}">
+      ${cu ? avatarHtml(cu,32) : '<div class="avatar av-blue" style="width:32px;height:32px;font-size:12px">?</div>'}
+      <div style="flex:1;min-width:0">
+        <div class="comment-bubble">
+          <div class="comment-meta">
+            <span style="font-weight:600">${cu ? cu.name : 'ไม่ทราบ'}</span>
+            <span>·</span>
+            <span>${formatDate(c.date)}</span>
+            <div class="comment-meta-right">
+              <button class="rxn-add-btn" id="rxnAddBtn_${t.id}_${idx}"
+                onclick="openReactionPicker(${t.id},${idx},this)" title="เพิ่ม Reaction">😊</button>
+              ${isOwn || currentUser.role==='admin' ?
+                `<button class="comment-delete-btn" onclick="deleteComment(${t.id},${idx})" title="ลบ Comment">🗑</button>` : ''}
+            </div>
+          </div>
+          <div class="comment-body">${renderMentions(c.text)}</div>
+        </div>
+        ${rxnBadges || Object.keys(reactions).length===0 ? `
+        <div class="reaction-bar" id="rxnBar_${t.id}_${idx}" style="position:relative">
+          ${rxnBadges}
+          <div class="rxn-picker" id="rxnPicker_${t.id}_${idx}">
+            ${RXN_EMOJIS.map(e=>`<button class="rxn-picker-emoji"
+              onclick="toggleReaction(${t.id},${idx},'${e}');closeReactionPicker(${t.id},${idx})">${e}</button>`).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// REACTION LOGIC
+// ============================================================
+function toggleReaction(taskId, commentIdx, emoji) {
+  const t = DB.tasks.find(x=>x.id===taskId); if (!t) return;
+  if (!t.comments[commentIdx]) return;
+  const c = t.comments[commentIdx];
+  if (!c.reactions) c.reactions = {};
+  if (!c.reactions[emoji]) c.reactions[emoji] = [];
+  const users = c.reactions[emoji];
+  const myIdx = users.indexOf(currentUser.id);
+  if (myIdx >= 0) {
+    users.splice(myIdx, 1); // remove
+    if (!users.length) delete c.reactions[emoji];
+  } else {
+    users.push(currentUser.id); // add
+  }
+  saveDB();
+  // Refresh only reaction bar (smooth, no full re-render)
+  refreshReactionBar(t, commentIdx);
+}
+
+function refreshReactionBar(t, idx) {
+  const c         = t.comments[idx]; if (!c) return;
+  const reactions = c.reactions || {};
+  const barEl     = document.getElementById(`rxnBar_${t.id}_${idx}`);
+  const pickerEl  = document.getElementById(`rxnPicker_${t.id}_${idx}`);
+  if (!barEl) { showTaskDetail(t.id); return; }
+
+  // Re-build badges
+  const badges = Object.entries(reactions)
+    .filter(([,u]) => u.length > 0)
+    .map(([emoji, users]) => {
+      const mine = users.includes(currentUser.id);
+      return `<button class="reaction-badge${mine?' mine':''} pop"
+        onclick="toggleReaction(${t.id},${idx},'${emoji}')"
+        title="${users.map(uid=>(getUser(uid)||{name:'?'}).name).join(', ')}">
+        <span class="rxn-emoji">${emoji}</span>
+        <span class="rxn-count">${users.length}</span>
+      </button>`;
+    }).join('');
+
+  // Preserve picker HTML
+  const pickerHtml = `<div class="rxn-picker" id="rxnPicker_${t.id}_${idx}">
+    ${RXN_EMOJIS.map(e=>`<button class="rxn-picker-emoji"
+      onclick="toggleReaction(${t.id},${idx},'${e}');closeReactionPicker(${t.id},${idx})">${e}</button>`).join('')}
+  </div>`;
+  barEl.innerHTML = badges + pickerHtml;
+
+  // Re-attach picker show state if it was open
+  if (pickerEl && pickerEl.classList.contains('show')) {
+    document.getElementById(`rxnPicker_${t.id}_${idx}`)?.classList.add('show');
+  }
+}
+
+function openReactionPicker(taskId, commentIdx, btnEl) {
+  // Close all other pickers first
+  document.querySelectorAll('.rxn-picker.show').forEach(p => p.classList.remove('show'));
+  const picker = document.getElementById(`rxnPicker_${taskId}_${commentIdx}`);
+  if (!picker) return;
+  // Position picker relative to button
+  const bar = document.getElementById(`rxnBar_${taskId}_${commentIdx}`);
+  if (bar) {
+    const btnRect = btnEl.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
+    // Determine if picker should go up or down
+    const spaceBelow = window.innerHeight - btnRect.bottom;
+    picker.style.top    = spaceBelow > 160 ? (btnRect.bottom - barRect.top + 4)+'px' : 'auto';
+    picker.style.bottom = spaceBelow > 160 ? 'auto' : (barRect.bottom - btnRect.top + 4)+'px';
+    picker.style.left   = '0';
+  }
+  picker.classList.add('show');
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!picker.contains(e.target) && e.target !== btnEl) {
+        picker.classList.remove('show');
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 10);
+}
+
+function closeReactionPicker(taskId, commentIdx) {
+  document.getElementById(`rxnPicker_${taskId}_${commentIdx}`)?.classList.remove('show');
+}
+
+function deleteComment(taskId, commentIdx) {
+  const t = DB.tasks.find(x=>x.id===taskId); if (!t) return;
+  if (!confirm('ลบ Comment นี้?')) return;
+  t.comments.splice(commentIdx, 1);
+  addAudit('ลบ Comment', `${currentUser.name} ลบ Comment ในงาน "${t.name}"`);
+  saveDB();
+  showTaskDetail(taskId);
+}
+
 function addComment(taskId) {
   const input = document.getElementById(`commentInput_${taskId}`);
   const text = input.value.trim();
   if (!text) return;
   const t = DB.tasks.find(x=>x.id===taskId); if(!t) return;
   if (!t.comments) t.comments=[];
-  t.comments.push({ userId: currentUser.id, date: today(), text });
+  t.comments.push({ userId: currentUser.id, date: today(), text, reactions: {} });
   // @mention notifications
   const mentionedNames = [...text.matchAll(/@(\S+)/g)].map(m=>m[1]);
   mentionedNames.forEach(uname=>{
@@ -3736,6 +3985,7 @@ function openAddTaskModal() {
   populateAssigneeSelect();
   populateTaskProjectSelect(null);
   clearPendingAttachments();
+  injectCustomFieldsIntoModal(null);
   openModal('taskModal');
 }
 function openEditTaskModal(id) {
@@ -3760,7 +4010,17 @@ function openEditTaskModal(id) {
   populateAssigneeSelect(t.assignee);
   populateTaskProjectSelect(t.projectId||null);
   clearPendingAttachments();
+  injectCustomFieldsIntoModal(t);
   openModal('taskModal');
+}
+function injectCustomFieldsIntoModal(t) {
+  // Remove old section if exists
+  document.getElementById('customFieldsSection')?.remove();
+  const html = renderCustomFieldsEdit(t || null);
+  if (!html) return;
+  // Insert before the modal footer
+  const footer = document.querySelector('#taskModal .modal-footer');
+  if (footer) footer.insertAdjacentHTML('beforebegin', html);
 }
 function populateAssigneeSelect(selected) {
   const sel=document.getElementById('taskAssignee'); sel.innerHTML='';
@@ -3798,6 +4058,7 @@ function saveTask() {
   const note=document.getElementById('taskNote').value.trim();
   const now=today();
 
+  const cfData = collectCustomFieldsFromModal();
   if(editingTaskId){
     const t=DB.tasks.find(x=>x.id===editingTaskId);
     if(t){
@@ -3810,6 +4071,7 @@ function saveTask() {
       Object.assign(t, newData);
       if(note) t.note=note;
       t.updatedAt=now;
+      t.customData = {...(t.customData||{}), ...cfData};
       if(newData.progress===100&&t.status!=='done'){t.status='done'; t.doneAt=now; setTimeout(()=>notifyTaskDone(t),500);}
       const diffSummary = diffs.map(d=>d.label).join(', ');
       addAudit('แก้ไขงาน', `${currentUser.name} แก้ไขงาน "${t.name}"${diffSummary?' ('+diffSummary+')':''}`);
@@ -3818,7 +4080,7 @@ function saveTask() {
     const t={id:DB.nextTaskId++,...newData,note,
       createdAt:now,updatedAt:now,doneAt:null,
       history:note?[{date:now,time:new Date().toISOString(),note,progress:newData.progress,user:currentUser.name,diffs:[]}]:[],
-      comments:[],subtasks:[],watchers:[],timeLog:[]};
+      comments:[],subtasks:[],watchers:[],timeLog:[],customData:cfData};
     if(newData.progress===100){t.status='done';t.doneAt=now;}
     DB.tasks.push(t);
     addAudit('สร้างงาน', `${currentUser.name} สร้างงาน "${name}"`)
@@ -3926,12 +4188,16 @@ function renderUsersPage(){
   }).join('');
 }
 
+function togglePhoneField(role) {
+  document.getElementById('phoneFieldGroup').style.display = role === 'user' ? '' : 'none';
+}
 function openAddUserModal(){
   document.getElementById('userModalTitle').textContent='เพิ่มผู้ใช้ใหม่';
   document.getElementById('editUserId').value='';
-  ['newUserName','newUserUsername','newUserPassword','newUserPosition','newUserDept'].forEach(id=>document.getElementById(id).value='');
+  ['newUserName','newUserUsername','newUserPassword','newUserPosition','newUserDept','newUserPhone'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('newUserRole').value='user';
   document.getElementById('pwdFill').style.width='0%'; document.getElementById('pwdLabel').textContent='';
+  togglePhoneField('user');
   openModal('userModal');
 }
 function openEditUserModal(id){
@@ -3944,13 +4210,21 @@ function openEditUserModal(id){
   document.getElementById('newUserRole').value=u.role;
   document.getElementById('newUserPosition').value=u.position||'';
   document.getElementById('newUserDept').value=u.dept||'';
+  document.getElementById('newUserPhone').value=u.phone||'';
+  togglePhoneField(u.role);
   openModal('userModal');
 }
 function saveUser(){
   const name=document.getElementById('newUserName').value.trim();
   const username=document.getElementById('newUserUsername').value.trim();
   const password=document.getElementById('newUserPassword').value;
+  const role=document.getElementById('newUserRole').value;
+  const phone=(document.getElementById('newUserPhone').value||'').trim().replace(/\D/g,'');
   if(!name||!username){alert('กรุณากรอกข้อมูลที่จำเป็น');return;}
+  if(role==='user'&&!phone){alert('กรุณากรอกเบอร์โทรศัพท์สำหรับ User');return;}
+  if(role==='user'&&DB.users.find(u=>u.role==='user'&&u.phone&&u.phone.replace(/\D/g,'')===phone&&u.id!==parseInt(document.getElementById('editUserId').value||0))){
+    alert('เบอร์โทรนี้มีผู้ใช้แล้ว'); return;
+  }
   const editId=parseInt(document.getElementById('editUserId').value);
   const colors=['av-blue','av-green','av-purple','av-orange','av-red','av-teal'];
   if(editId){
@@ -3958,16 +4232,17 @@ function saveUser(){
     if(u){
       u.name=name; u.username=username;
       if(password) u.pwdHash=simpleHash(password);
-      u.role=document.getElementById('newUserRole').value;
+      u.role=role;
       u.position=document.getElementById('newUserPosition').value;
       u.dept=document.getElementById('newUserDept').value;
+      if(role==='user') u.phone=phone;
       addAudit('แก้ไขผู้ใช้', `${currentUser.name} แก้ไขข้อมูลผู้ใช้ "${name}"`);
     }
   } else {
     if(!password){alert('กรุณาตั้งรหัสผ่าน');return;}
     if(DB.users.find(u=>u.username===username)){alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');return;}
     DB.users.push({id:DB.nextUserId++,name,username,pwdHash:simpleHash(password),
-      role:document.getElementById('newUserRole').value,
+      role, phone: role==='user'?phone:undefined,
       position:document.getElementById('newUserPosition').value,
       dept:document.getElementById('newUserDept').value,
       color:colors[DB.nextUserId%colors.length]});
@@ -4124,7 +4399,11 @@ function renderProfile(){
     <div class="info-row"><span class="info-label">ชื่อผู้ใช้:</span><span>@${u.username}</span></div>
     <div class="info-row"><span class="info-label">แผนก:</span><span>${u.dept||'-'}</span></div>
     <div class="info-row"><span class="info-label">ตำแหน่ง:</span><span>${u.position||'-'}</span></div>
-    <div class="info-row"><span class="info-label">ความปลอดภัย:</span><span style="color:var(--green)">🔒 รหัสผ่านถูก hash แล้ว</span></div>`;
+    <div class="info-row"><span class="info-label">ความปลอดภัย:</span><span style="color:var(--green)">🔒 รหัสผ่านถูก hash แล้ว</span></div>
+    ${u.role==='admin'?`<hr style="border-color:var(--border);margin:16px 0">
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px">⚙️ ตั้งค่าระบบ (Admin)</div>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;justify-content:flex-start;gap:10px" onclick="openCustomFieldsModal()">📋 จัดการ Custom Fields <span style="margin-left:auto;font-size:11px;color:var(--text3)">${(DB.customFields||[]).length} fields</span></button>`:''}
+    `;
   document.getElementById('profileStats').innerHTML=`
     <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
       <div class="stat-card blue"><div class="stat-label">งานทั้งหมด</div><div class="stat-value blue">${tasks.length}</div></div>
@@ -5003,6 +5282,163 @@ function autoUpdateProgressFromSubtasks(t) {
   t.progress = Math.round(done/t.subtasks.length*100);
   if (t.progress===100) t.status='done';
   t.updatedAt = today();
+}
+
+// ============================================================
+// TIME LOG MANUAL ENTRY
+// ============================================================
+function openTimeLogModal(taskId) {
+  document.getElementById('timeLogTaskId').value = taskId;
+  document.getElementById('tlHours').value   = 0;
+  document.getElementById('tlMinutes').value = 0;
+  document.getElementById('tlDate').value    = today();
+  document.getElementById('tlNote').value    = '';
+  document.getElementById('timeLogModal').classList.add('show');
+}
+function saveTimeLog() {
+  const taskId  = parseInt(document.getElementById('timeLogTaskId').value);
+  const hours   = parseInt(document.getElementById('tlHours').value)   || 0;
+  const minutes = parseInt(document.getElementById('tlMinutes').value) || 0;
+  const total   = hours * 60 + minutes;
+  if (total <= 0) { alert('กรุณาระบุเวลาอย่างน้อย 1 นาที'); return; }
+  const t = DB.tasks.find(x=>x.id===taskId); if (!t) return;
+  if (!t.timeLog) t.timeLog = [];
+  t.timeLog.push({
+    id: Date.now(),
+    minutes: total,
+    date: document.getElementById('tlDate').value,
+    note: document.getElementById('tlNote').value.trim(),
+    userId: currentUser.id,
+  });
+  t.updatedAt = today();
+  addAudit('บันทึกเวลา', `${currentUser.name} บันทึก ${fmtHours(total)} ในงาน "${t.name}"`);
+  saveDB();
+  closeModal('timeLogModal');
+  showTaskDetail(taskId);
+}
+function deleteTimeLog(taskId, logId) {
+  const t = DB.tasks.find(x=>x.id===taskId); if (!t) return;
+  t.timeLog = (t.timeLog||[]).filter(l=>l.id!==logId);
+  saveDB(); showTaskDetail(taskId);
+}
+function renderTimeLogSection(t) {
+  const logs = (t.timeLog||[]).filter(l=>l.minutes>0);
+  const logRows = logs.slice().reverse().map(l => {
+    const u = getUser(l.userId);
+    const canDel = l.userId===currentUser.id || currentUser.role==='admin';
+    return `<div class="tl-row">
+      <span class="tl-duration">${fmtHours(l.minutes)}</span>
+      <span class="tl-note">${l.note||'—'}</span>
+      <span class="tl-date">${formatDate(l.date)}${u?' · '+u.name:''}</span>
+      ${canDel?`<button class="tl-del" onclick="deleteTimeLog(${t.id},${l.id})" title="ลบ">✕</button>`:''}
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-weight:600">⏱ Time Tracking</span>
+      <span style="font-size:12px;color:var(--text2)">${fmtHours(totalLogged(t))}${t.estimate?' / '+fmtHours(t.estimate*60)+' estimate':''}</span>
+      ${t.estimate?`<div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden"><div style="height:100%;background:var(--accent2);width:${Math.min(100,Math.round(totalLogged(t)/(t.estimate*60)*100))}%"></div></div>`:''}
+      <span style="margin-left:auto;display:flex;gap:6px">
+        <span>${renderTimerBtn(t.id)}</span>
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="openTimeLogModal(${t.id})">✏️ บันทึกด้วยตัวเอง</button>
+      </span>
+    </div>
+    ${logRows ? `<div style="max-height:180px;overflow-y:auto">${logRows}</div>` : '<div style="font-size:12px;color:var(--text3)">ยังไม่มีรายการบันทึกเวลา</div>'}
+  </div>`;
+}
+
+// ============================================================
+// CUSTOM FIELDS
+// ============================================================
+function openCustomFieldsModal() {
+  DB.customFields = DB.customFields || [];
+  renderCfList();
+  document.getElementById('customFieldsModal').classList.add('show');
+  // show/hide options group on type change
+  document.getElementById('cfNewType').onchange = function() {
+    document.getElementById('cfOptionsGroup').style.display = this.value==='select' ? '' : 'none';
+  };
+}
+function renderCfList() {
+  const cfs = DB.customFields || [];
+  const TYPE_LABEL = {text:'ข้อความ',number:'ตัวเลข',date:'วันที่',select:'ตัวเลือก',url:'URL'};
+  document.getElementById('cfList').innerHTML = cfs.length === 0
+    ? '<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">ยังไม่มี Custom Fields</div>'
+    : cfs.map(f => `<div class="cf-manage-row">
+        <span class="cf-type-badge">${TYPE_LABEL[f.type]||f.type}</span>
+        <span style="flex:1;font-size:13px;font-weight:600">${f.name}</span>
+        ${f.options?.length ? `<span style="font-size:11px;color:var(--text3)">${f.options.join(', ')}</span>` : ''}
+        <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="deleteCustomField(${f.id})">🗑</button>
+      </div>`).join('');
+}
+function addCustomField() {
+  const name = document.getElementById('cfNewName').value.trim();
+  if (!name) { alert('กรุณาระบุชื่อ Field'); return; }
+  const type = document.getElementById('cfNewType').value;
+  const opts = type==='select'
+    ? document.getElementById('cfNewOptions').value.split(',').map(s=>s.trim()).filter(Boolean)
+    : [];
+  DB.customFields = DB.customFields || [];
+  DB.customFields.push({ id: DB.nextCfId++, name, type, options: opts });
+  saveDB();
+  document.getElementById('cfNewName').value    = '';
+  document.getElementById('cfNewOptions').value = '';
+  document.getElementById('cfNewType').value    = 'text';
+  document.getElementById('cfOptionsGroup').style.display = 'none';
+  renderCfList();
+}
+function deleteCustomField(cfId) {
+  if (!confirm('ลบ Field นี้? ข้อมูลที่บันทึกไว้จะหายทั้งหมด')) return;
+  DB.customFields = (DB.customFields||[]).filter(f=>f.id!==cfId);
+  // Remove data from all tasks
+  DB.tasks.forEach(t => { if (t.customData) delete t.customData[cfId]; });
+  saveDB(); renderCfList();
+}
+function renderCustomFieldsView(t) {
+  const cfs = DB.customFields || [];
+  if (!cfs.length) return '';
+  const data = t.customData || {};
+  const rows = cfs.map(f => {
+    const val = data[f.id] ?? '';
+    const display = f.type==='url' && val
+      ? `<a href="${val}" target="_blank" style="color:var(--accent2)">${val}</a>`
+      : (val || '<span style="color:var(--text3)">—</span>');
+    return `<div class="cf-row"><span class="cf-label">📌 ${f.name}</span><span class="cf-value">${display}</span></div>`;
+  }).join('');
+  return `<div style="margin-bottom:16px"><div style="font-weight:600;margin-bottom:8px">📋 ข้อมูลเพิ่มเติม</div>${rows}</div>`;
+}
+function renderCustomFieldsEdit(t) {
+  const cfs = DB.customFields || [];
+  if (!cfs.length) return '';
+  const data = (t && t.customData) || {};
+  const TYPE_LABEL = {text:'ข้อความ',number:'ตัวเลข',date:'วันที่',select:'ตัวเลือก',url:'URL'};
+  const inputs = cfs.map(f => {
+    const val = data[f.id] ?? '';
+    let input = '';
+    if (f.type==='select') {
+      input = `<select id="cf_${f.id}" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;color:var(--text1)">
+        <option value="">— เลือก —</option>
+        ${f.options.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    } else if (f.type==='text'||f.type==='url') {
+      input = `<input type="${f.type==='url'?'url':'text'}" id="cf_${f.id}" value="${val}" placeholder="${TYPE_LABEL[f.type]}" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;color:var(--text1)">`;
+    } else if (f.type==='number') {
+      input = `<input type="number" id="cf_${f.id}" value="${val}" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;color:var(--text1)">`;
+    } else if (f.type==='date') {
+      input = `<input type="date" id="cf_${f.id}" value="${val}" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:13px;color:var(--text1)">`;
+    }
+    return `<div class="form-group" style="margin-bottom:10px"><label style="font-size:12px">📌 ${f.name}</label>${input}</div>`;
+  }).join('');
+  return `<div id="customFieldsSection"><hr style="border-color:var(--border);margin:10px 0"><div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">📋 ข้อมูลเพิ่มเติม (Custom Fields)</div>${inputs}</div>`;
+}
+function collectCustomFieldsFromModal() {
+  const cfs = DB.customFields || [];
+  const result = {};
+  cfs.forEach(f => {
+    const el = document.getElementById(`cf_${f.id}`);
+    if (el) result[f.id] = el.value.trim();
+  });
+  return result;
 }
 
 // ============================================================
@@ -6006,6 +6442,82 @@ window.addEventListener('appinstalled', ()=>{
       rows="1" onkeydown="aiInputKeydown(event)"
       oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
     <button class="ai-send-btn" id="aiSendBtn" onclick="aiSend()">➤</button>
+  </div>
+</div>
+
+<!-- Custom Fields Manager Modal -->
+<div class="modal-backdrop" id="customFieldsModal">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ จัดการ Custom Fields</div>
+      <button class="btn-close" onclick="closeModal('customFieldsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px">กำหนด Field พิเศษที่จะปรากฎในทุกงาน เช่น ลูกค้า, Budget, เลขที่เอกสาร</p>
+      <div id="cfList" style="margin-bottom:16px"></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:14px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:10px">➕ เพิ่ม Field ใหม่</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label>ชื่อ Field</label>
+            <input type="text" id="cfNewName" placeholder="เช่น ลูกค้า, Budget...">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>ประเภท</label>
+            <select id="cfNewType">
+              <option value="text">ข้อความ</option>
+              <option value="number">ตัวเลข</option>
+              <option value="date">วันที่</option>
+              <option value="select">ตัวเลือก</option>
+              <option value="url">URL</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="cfOptionsGroup" style="display:none">
+          <label>ตัวเลือก (คั่นด้วยจุลภาค)</label>
+          <input type="text" id="cfNewOptions" placeholder="เช่น ตัวเลือก 1, ตัวเลือก 2">
+        </div>
+        <button class="btn btn-primary" onclick="addCustomField()" style="width:100%">➕ เพิ่ม Field</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('customFieldsModal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Time Log Manual Entry Modal -->
+<div class="modal-backdrop" id="timeLogModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">⏱ บันทึกเวลา</div>
+      <button class="btn-close" onclick="closeModal('timeLogModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="timeLogTaskId">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ชั่วโมง</label>
+          <input type="number" id="tlHours" min="0" max="999" value="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>นาที</label>
+          <input type="number" id="tlMinutes" min="0" max="59" value="0" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>วันที่</label>
+        <input type="date" id="tlDate">
+      </div>
+      <div class="form-group">
+        <label>หมายเหตุ (ไม่บังคับ)</label>
+        <input type="text" id="tlNote" placeholder="เช่น ประชุม, coding feature X">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('timeLogModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveTimeLog()">💾 บันทึก</button>
+    </div>
   </div>
 </div>
 
