@@ -1804,6 +1804,11 @@ function loadDB() {
         if (!t.subtasks)    t.subtasks    = [];
         if (!t.reactions)   t.reactions   = {};
       });
+      // Migration: add default phone for seed users that don't have one
+      const SEED_PHONES = {2:'0811111111',3:'0822222222',4:'0833333333',5:'0844444444'};
+      DB.users && DB.users.forEach(u => {
+        if (u.role !== 'admin' && !u.phone && SEED_PHONES[u.id]) u.phone = SEED_PHONES[u.id];
+      });
       try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {}
     }
   } catch(e) {
