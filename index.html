@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorkTrack v4 — ระบบติดตามงาน</title>
+<title>WorkTrack v5.4 — ระบบติดตามงาน</title>
 <meta name="theme-color" content="#0d1117">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -121,21 +121,56 @@ body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: var(--t
 
 /* STATS */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
-.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:20px; position:relative; overflow:hidden; }
-.stat-card::after { content:''; position:absolute; right:-10px; bottom:-10px; width:60px; height:60px; border-radius:50%; opacity:.1; }
-.stat-card.blue::after { background:var(--accent); }
+.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; position:relative; overflow:hidden; transition:transform .15s,box-shadow .15s; cursor:default; }
+.stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.25); }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:var(--radius) var(--radius) 0 0; }
+.stat-card.blue::before  { background:linear-gradient(90deg,var(--accent),#79c0ff); }
+.stat-card.green::before { background:linear-gradient(90deg,var(--green),#56d364); }
+.stat-card.yellow::before{ background:linear-gradient(90deg,var(--yellow2),#f0c040); }
+.stat-card.red::before   { background:linear-gradient(90deg,var(--red),#ff7b72); }
+.stat-card::after { content:''; position:absolute; right:-16px; bottom:-16px; width:80px; height:80px; border-radius:50%; opacity:.08; }
+.stat-card.blue::after  { background:var(--accent); }
 .stat-card.green::after { background:var(--green); }
-.stat-card.yellow::after { background:var(--yellow2); }
-.stat-card.purple::after { background:var(--purple); }
-.stat-card.red::after { background:var(--red); }
-.stat-label { font-size:12px; color:var(--text2); margin-bottom:8px; font-weight:500; }
-.stat-value { font-family:'Kanit',sans-serif; font-size:28px; font-weight:700; }
-.stat-value.blue { color:var(--accent); }
-.stat-value.green { color:var(--green); }
+.stat-card.yellow::after{ background:var(--yellow2); }
+.stat-card.red::after   { background:var(--red); }
+.stat-icon { font-size:22px; margin-bottom:10px; display:block; }
+.stat-label { font-size:12px; color:var(--text2); margin-bottom:6px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
+.stat-value { font-family:'Kanit',sans-serif; font-size:32px; font-weight:700; line-height:1; }
+.stat-value.blue   { color:var(--accent); }
+.stat-value.green  { color:var(--green); }
 .stat-value.yellow { color:var(--yellow2); }
-.stat-value.purple { color:var(--purple); }
-.stat-value.red { color:var(--red); }
-.stat-sub { font-size:12px; color:var(--text2); margin-top:4px; }
+.stat-value.red    { color:var(--red); }
+.stat-sub { font-size:12px; color:var(--text2); margin-top:6px; display:flex; align-items:center; gap:4px; }
+.stat-badge { font-size:10px; padding:2px 6px; border-radius:10px; font-weight:600; }
+.stat-badge.up   { background:rgba(63,185,80,.15); color:var(--green); }
+.stat-badge.down { background:rgba(248,81,73,.15); color:var(--red); }
+/* ACTIVITY FEED */
+.activity-feed { display:flex; flex-direction:column; gap:0; }
+.activity-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.activity-item:last-child { border-bottom:none; }
+.activity-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.activity-text { font-size:12px; color:var(--text2); flex:1; line-height:1.5; }
+.activity-text strong { color:var(--text1); }
+.activity-time { font-size:11px; color:var(--text3); flex-shrink:0; }
+/* ANALYTICS KPI */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+@media(max-width:700px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+.kpi-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; text-align:center; position:relative; overflow:hidden; }
+.kpi-card::before { content:''; position:absolute; inset:0; opacity:.04; }
+.kpi-card.kpi-blue::before   { background:var(--accent); }
+.kpi-card.kpi-green::before  { background:var(--green); }
+.kpi-card.kpi-yellow::before { background:var(--yellow2); }
+.kpi-card.kpi-purple::before { background:var(--purple); }
+.kpi-num { font-family:'Kanit',sans-serif; font-size:26px; font-weight:700; line-height:1.1; }
+.kpi-num.kpi-blue   { color:var(--accent); }
+.kpi-num.kpi-green  { color:var(--green); }
+.kpi-num.kpi-yellow { color:var(--yellow2); }
+.kpi-num.kpi-purple { color:var(--purple); }
+.kpi-desc { font-size:11px; color:var(--text2); margin-top:4px; }
+/* RING PROGRESS */
+.ring-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-center { position:absolute; font-family:'Kanit',sans-serif; font-size:13px; font-weight:700; }
 
 /* TABLE */
 table { width:100%; border-collapse:collapse; }
@@ -1220,6 +1255,10 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
             <div class="card-header"><span class="card-title">👥 ความคืบหน้าของทีม</span></div>
             <div class="card-body" id="teamProgressBody"></div>
           </div>
+          <div class="card" style="margin-top:24px">
+            <div class="card-header"><span class="card-title">🕐 กิจกรรมล่าสุด</span></div>
+            <div class="card-body"><div class="activity-feed" id="activityFeed"></div></div>
+          </div>
         </div>
 
         <!-- PROJECTS -->
@@ -1233,16 +1272,18 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
 
         <!-- ANALYTICS -->
         <div id="pageAnalytics" class="page">
+          <!-- KPI Summary -->
+          <div class="kpi-grid" id="analyticsKpi"></div>
           <div class="grid2" style="margin-bottom:20px">
-            <div class="card"><div class="card-header"><span class="card-title">📉 Burndown Chart</span><span id="burndownLabel" style="font-size:12px;color:var(--text2)"></span></div><div class="card-body"><div class="chart-container-lg"><canvas id="chartBurndown"></canvas></div></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📉 Burndown Chart (30 วัน)</span><span id="burndownLabel" style="font-size:12px;color:var(--text2)"></span></div><div class="card-body"><div class="chart-container-lg"><canvas id="chartBurndown"></canvas></div></div></div>
             <div class="card"><div class="card-header"><span class="card-title">⏱️ On-time Delivery Rate</span></div><div class="card-body" id="ontimeBody"></div></div>
           </div>
           <div class="grid2" style="margin-top:20px">
-            <div class="card"><div class="card-header"><span class="card-title">🕐 Time Tracking</span></div><div class="card-body" id="timeTrackBody"></div></div>
-            <div class="card"><div class="card-header"><span class="card-title">📊 Priority Chart</span></div><div class="card-body"><div class="chart-container"><canvas id="chartPriority"></canvas></div></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">🕐 Time Tracking vs Estimate</span></div><div class="card-body" id="timeTrackBody"></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">📊 Priority Distribution</span></div><div class="card-body"><div class="chart-container"><canvas id="chartPriority"></canvas></div></div></div>
           </div>
           <div class="grid2" style="margin-top:20px">
-            <div class="card"><div class="card-header"><span class="card-title">⚖️ Workload per User (งาน Active)</span></div><div class="card-body"><div class="chart-container-lg"><canvas id="chartWorkload"></canvas></div></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">⚖️ Workload per User</span></div><div class="card-body"><div class="chart-container-lg"><canvas id="chartWorkload"></canvas></div></div></div>
             <div class="card"><div class="card-header"><span class="card-title">📅 งานครบกำหนดรายเดือน</span></div><div class="card-body"><div class="chart-container-lg"><canvas id="chartDueMonth"></canvas></div></div></div>
           </div>
         </div>
@@ -3188,10 +3229,24 @@ async function sendDailyDigest() {
   msg += `\n\n✅ เสร็จวันนี้: ${doneToday.length} รายการ`;
   msg += `\n\n— ส่งโดย WorkTrack`;
 
-  sendLineNotify(msg);
-  // Email digest to admin
-  if (s.emailEnabled && currentUser.email) {
-    sendEmailNotif(currentUser.email, `[WorkTrack] Daily Digest ${t}`, msg);
+  if (USE_SHEETS) {
+    const emailList = s.emailEnabled
+      ? DB.users.filter(u => u.email).map(u => u.email)
+      : [];
+    await apiCall('dailyDigest', {
+      data: JSON.stringify({
+        tasks: DB.tasks,
+        users: DB.users,
+        lineToken: s.lineEnabled ? s.lineToken : null,
+        emailList,
+      })
+    });
+  } else {
+    // ออฟไลน์: แจ้งเตือนใน app เท่านั้น
+    sendLineNotify(msg);
+    if (s.emailEnabled && currentUser.email) {
+      sendEmailNotif(currentUser.email, `[WorkTrack] Daily Digest ${t}`, msg);
+    }
   }
   showToast('📨 ส่ง Daily Digest แล้ว', 'success');
   closeModal('notifSettingsModal');
@@ -3364,95 +3419,271 @@ function showPage(page) {
 function renderDashboard() {
   renderSlaBanner();
   const tasks = currentUser.role==='admin' ? DB.tasks : DB.tasks.filter(t=>t.assignee===currentUser.id);
-  const total = tasks.length;
-  const done = tasks.filter(t=>t.status==='done').length;
-  const inprog = tasks.filter(t=>t.status==='inprogress').length;
+  const total   = tasks.length;
+  const done    = tasks.filter(t=>t.status==='done').length;
+  const inprog  = tasks.filter(t=>t.status==='inprogress').length;
   const pending = tasks.filter(t=>t.status==='pending').length;
   const overdue = tasks.filter(t=>getTaskStatus(t)==='overdue').length;
-  const avgProg = total ? Math.round(tasks.reduce((s,t)=>s+t.progress,0)/total) : 0;
+  const doneRate = total ? Math.round(done/total*100) : 0;
 
+  // ── Stat cards ──────────────────────────────────────────────
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card blue"><div class="stat-label">งานทั้งหมด</div><div class="stat-value blue">${total}</div><div class="stat-sub">ทุกสถานะ</div></div>
-    <div class="stat-card green"><div class="stat-label">เสร็จสิ้น</div><div class="stat-value green">${done}</div><div class="stat-sub">${total?Math.round(done/total*100):0}% ของทั้งหมด</div></div>
-    <div class="stat-card yellow"><div class="stat-label">กำลังดำเนินการ</div><div class="stat-value yellow">${inprog}</div><div class="stat-sub">${pending} รอดำเนินการ</div></div>
-    <div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value red">${overdue}</div><div class="stat-sub">ต้องดำเนินการด่วน</div></div>`;
+    <div class="stat-card blue" onclick="goToTasks({})" title="ดูงานทั้งหมด" style="cursor:pointer">
+      <span class="stat-icon">📋</span>
+      <div class="stat-label">งานทั้งหมด</div>
+      <div class="stat-value blue" data-count="${total}">0</div>
+      <div class="stat-sub">ทุกสถานะ รวม ${DB.projects.length} โปรเจกต์ →</div>
+    </div>
+    <div class="stat-card green" onclick="goToTasks({status:'done'})" title="ดูงานเสร็จสิ้น" style="cursor:pointer">
+      <span class="stat-icon">✅</span>
+      <div class="stat-label">เสร็จสิ้น</div>
+      <div class="stat-value green" data-count="${done}">0</div>
+      <div class="stat-sub">
+        <span class="stat-badge up">▲ ${doneRate}%</span> คลิกดูรายการ →
+      </div>
+    </div>
+    <div class="stat-card yellow" onclick="goToTasks({status:'inprogress'})" title="ดูงานกำลังดำเนินการ" style="cursor:pointer">
+      <span class="stat-icon">⚡</span>
+      <div class="stat-label">กำลังดำเนินการ</div>
+      <div class="stat-value yellow" data-count="${inprog}">0</div>
+      <div class="stat-sub">รอดำเนินการอีก ${pending} งาน →</div>
+    </div>
+    <div class="stat-card red" onclick="goToTasks({status:'overdue'})" title="ดูงานเกินกำหนด" style="cursor:pointer">
+      <span class="stat-icon">🚨</span>
+      <div class="stat-label">เกินกำหนด</div>
+      <div class="stat-value red" data-count="${overdue}">0</div>
+      <div class="stat-sub">${overdue>0?'<span class="stat-badge down">คลิกดูด่วน →</span>':'<span style="color:var(--green)">✓ ไม่มีงานค้าง</span>'}</div>
+    </div>`;
 
-  // Chart: Progress bar
-  const pd = tasks.slice(0,7);
+  // Animated counter
+  document.querySelectorAll('.stat-value[data-count]').forEach(el => {
+    const target = parseInt(el.dataset.count);
+    if (!target) { el.textContent = '0'; return; }
+    let cur = 0; const step = Math.ceil(target/20);
+    const timer = setInterval(() => {
+      cur = Math.min(cur+step, target);
+      el.textContent = cur;
+      if (cur >= target) clearInterval(timer);
+    }, 40);
+  });
+
+  // ── Chart colors (theme-aware) ───────────────────────────────
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const gc = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+  const tc = isDark ? '#768390' : '#666';
+  const chartDefaults = {
+    responsive:true, maintainAspectRatio:false,
+    animation:{ duration:600, easing:'easeOutQuart' },
+  };
+
+  // ── Bar: Progress ────────────────────────────────────────────
+  const pd = tasks.filter(t=>t.status!=='done').slice(0,8);
   destroyChart('chartProgress');
-  charts.progress = new Chart(document.getElementById('chartProgress').getContext('2d'), {
-    type:'bar', data:{ labels: pd.map(t=>t.name.length>14?t.name.substring(0,14)+'…':t.name),
-    datasets:[{label:'คืบหน้า (%)', data:pd.map(t=>t.progress), backgroundColor:pd.map(t=>t.progress>=80?'#3fb950':t.progress>=40?'#f0c040':'#58a6ff'), borderRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#8b949e',font:{family:'Sarabun',size:11}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},max:100}}}
-  });
+  if (document.getElementById('chartProgress')) {
+    charts.progress = new Chart(document.getElementById('chartProgress').getContext('2d'), {
+      type:'bar',
+      data:{
+        labels: pd.map(t=>t.name.length>13 ? t.name.slice(0,13)+'…' : t.name),
+        datasets:[{
+          label:'คืบหน้า (%)',
+          data: pd.map(t=>t.progress),
+          backgroundColor: pd.map(t => t.progress>=80?'rgba(63,185,80,.8)':t.progress>=40?'rgba(240,192,64,.8)':'rgba(88,166,255,.8)'),
+          borderRadius:8, borderSkipped:false,
+        }]
+      },
+      options:{...chartDefaults,
+        onClick(_e, els){ if(els.length) showTaskDetail(pd[els[0].index].id); },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}% — คลิกดูรายละเอียด`}}},
+        scales:{
+          x:{ticks:{color:tc,font:{family:'Sarabun',size:11}},grid:{display:false}},
+          y:{ticks:{color:tc,callback:v=>v+'%'},grid:{color:gc},max:100,min:0}
+        }
+      }
+    });
+  }
 
-  // Chart: Doughnut
+  // ── Doughnut: Status ─────────────────────────────────────────
+  const statusKeys = ['done','inprogress','pending','overdue'];
   destroyChart('chartStatus');
-  charts.status = new Chart(document.getElementById('chartStatus').getContext('2d'), {
-    type:'doughnut', data:{labels:['เสร็จสิ้น','กำลังดำเนินการ','รอดำเนินการ','เกินกำหนด'],
-    datasets:[{data:[done,inprog,pending,overdue],backgroundColor:['#3fb950','#58a6ff','#8b949e','#f85149'],borderColor:'#161b22',borderWidth:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{family:'Sarabun'},padding:12}}}}
-  });
+  if (document.getElementById('chartStatus')) {
+    charts.status = new Chart(document.getElementById('chartStatus').getContext('2d'), {
+      type:'doughnut',
+      data:{
+        labels:['✅ เสร็จสิ้น','⚡ กำลังทำ','⏳ รอดำเนินการ','🚨 เกินกำหนด'],
+        datasets:[{
+          data:[done,inprog,pending,overdue],
+          backgroundColor:['#3fb950','#58a6ff','#6e7681','#f85149'],
+          borderColor: isDark?'#0d1117':'#ffffff',
+          borderWidth:3, hoverOffset:8,
+        }]
+      },
+      options:{...chartDefaults,
+        cutout:'68%',
+        onClick(_e, els){ if(els.length) goToTasks({status: statusKeys[els[0].index]}); },
+        plugins:{
+          legend:{position:'bottom',labels:{color:tc,font:{family:'Sarabun',size:11},padding:14,usePointStyle:true}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} งาน — คลิกกรอง`}}
+        }
+      }
+    });
+    // Center text plugin
+    Chart.register({id:'doughnutCenter_status', beforeDraw(chart){
+      if(chart.canvas.id!=='chartStatus') return;
+      const {ctx,chartArea:{top,bottom,left,right}}=chart;
+      const cx=(left+right)/2, cy=(top+bottom)/2;
+      ctx.save();
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=isDark?'#e6edf3':'#1f2328';
+      ctx.font=`700 22px Kanit,sans-serif`;
+      ctx.fillText(doneRate+'%', cx, cy-8);
+      ctx.font=`11px Sarabun,sans-serif`;
+      ctx.fillStyle=tc;
+      ctx.fillText('เสร็จสิ้น', cx, cy+12);
+      ctx.restore();
+    }});
+  }
 
-  // Chart: Weekly Trend
+  // ── Line: Weekly Trend ───────────────────────────────────────
   destroyChart('chartTrend');
-  const weekLabels = [], weekDone = [], weekCreated = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i*7);
-    const wStart = new Date(d); wStart.setDate(d.getDate()-6);
-    const label = `${wStart.getMonth()+1}/${wStart.getDate()}`;
-    weekLabels.push(label);
-    const ws = wStart.toISOString().split('T')[0], we = d.toISOString().split('T')[0];
+  const weekLabels=[], weekDone=[], weekCreated=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i*7);
+    const wStart=new Date(d); wStart.setDate(d.getDate()-6);
+    weekLabels.push(`${wStart.getMonth()+1}/${wStart.getDate()}`);
+    const ws=wStart.toISOString().split('T')[0], we=d.toISOString().split('T')[0];
     weekDone.push(DB.tasks.filter(t=>t.updatedAt>=ws&&t.updatedAt<=we&&t.status==='done').length);
     weekCreated.push(DB.tasks.filter(t=>t.createdAt>=ws&&t.createdAt<=we).length);
   }
-  charts.trend = new Chart(document.getElementById('chartTrend').getContext('2d'), {
-    type:'line', data:{labels:weekLabels,datasets:[
-      {label:'งานเสร็จ',data:weekDone,borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,0.1)',tension:.3,fill:true,pointBackgroundColor:'#3fb950'},
-      {label:'งานใหม่',data:weekCreated,borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,0.1)',tension:.3,fill:true,pointBackgroundColor:'#58a6ff'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{family:'Sarabun'},padding:10}}},
-      scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',stepSize:1},grid:{color:'#21262d'},min:0}}}
-  });
+  if (document.getElementById('chartTrend')) {
+    charts.trend = new Chart(document.getElementById('chartTrend').getContext('2d'), {
+      type:'line',
+      data:{labels:weekLabels, datasets:[
+        {label:'✅ งานเสร็จ', data:weekDone, borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,0.12)', tension:.4, fill:true, pointBackgroundColor:'#3fb950', pointRadius:4, pointHoverRadius:7, borderWidth:2.5},
+        {label:'➕ งานใหม่', data:weekCreated, borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.10)', tension:.4, fill:true, pointBackgroundColor:'#58a6ff', pointRadius:4, pointHoverRadius:7, borderWidth:2.5}
+      ]},
+      options:{...chartDefaults,
+        plugins:{legend:{position:'bottom',labels:{color:tc,font:{family:'Sarabun',size:11},padding:14,usePointStyle:true}}},
+        scales:{
+          x:{ticks:{color:tc},grid:{color:gc}},
+          y:{ticks:{color:tc,stepSize:1},grid:{color:gc},min:0}
+        }
+      }
+    });
+  }
 
-  // Workload
-  const wlBody = document.getElementById('workloadBody');
-  const maxTasks = Math.max(1, ...DB.users.filter(u=>u.role==='user').map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length));
-  wlBody.innerHTML = DB.users.filter(u=>u.role==='user').map(u=>{
+  // ── Workload (ring + bar) ────────────────────────────────────
+  const users = DB.users.filter(u=>u.role==='user');
+  const maxActive = Math.max(1,...users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length));
+  document.getElementById('workloadBody').innerHTML = users.map(u=>{
     const active = DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length;
-    const total2 = DB.tasks.filter(t=>t.assignee===u.id).length;
-    const pct = Math.round(active/maxTasks*100);
-    const color = active > 4 ? '#f85149' : active > 2 ? '#f0c040' : '#3fb950';
-    return `<div class="workload-bar-wrap">
-      <div class="workload-label" style="display:flex;align-items:center;gap:6px">${avatarHtml(u,24)}<span style="font-size:12px">${u.name.split(' ')[0]}</span></div>
-      <div class="workload-bar"><div class="workload-fill" style="width:${pct}%;background:${color}">${active>0?active:''}</div></div>
-      <div class="workload-count">${active}/${total2}</div>
+    const totalU = DB.tasks.filter(t=>t.assignee===u.id).length;
+    const doneU  = DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done').length;
+    const pct    = Math.round(active/maxActive*100);
+    const color  = active>4?'var(--red)':active>2?'var(--yellow2)':'var(--green)';
+    const ringPct= totalU?Math.round(doneU/totalU*100):0;
+    const r=18, circ=2*Math.PI*r;
+    return `<div onclick="goToTasks({userId:${u.id}})" title="ดูงานของ ${u.name}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px;transition:background .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+      <div class="ring-wrap" style="width:44px;height:44px">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="4"/>
+          <circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="4"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-ringPct/100)}"
+            stroke-linecap="round" style="transition:stroke-dashoffset .6s ease"/>
+        </svg>
+        <span class="ring-center" style="color:${color};font-size:10px">${ringPct}%</span>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:600">${u.name.split(' ')[0]}</span>
+          <span style="font-size:11px;color:var(--text2)">${active} งานค้าง</span>
+        </div>
+        <div style="background:var(--bg4);border-radius:4px;height:6px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width .6s ease"></div>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:36px">
+        <div style="font-size:11px;font-weight:700;color:${color}">${active}</div>
+        <div style="font-size:10px;color:var(--text3)">/${totalU}</div>
+      </div>
     </div>`;
   }).join('');
 
-  // Team progress
+  // ── Team Progress (admin only) ───────────────────────────────
   const teamCard = document.getElementById('teamProgressCard');
   if (currentUser.role==='admin') {
     teamCard.style.display='block';
-    document.getElementById('teamProgressBody').innerHTML = DB.users.filter(u=>u.role==='user').map(u=>{
-      const ut = DB.tasks.filter(t=>t.assignee===u.id);
-      const uDone = ut.filter(t=>t.status==='done').length;
-      const uAvg = ut.length ? Math.round(ut.reduce((s,t)=>s+t.progress,0)/ut.length) : 0;
-      return `<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-        ${avatarHtml(u,36)}
-        <div style="flex:1">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span style="font-weight:600;font-size:13px">${u.name}</span>
-            <span style="font-size:12px;color:var(--text2)">${uDone}/${ut.length} งาน &nbsp;<strong style="color:var(--accent)">${uAvg}%</strong></span>
-          </div>
-          <div class="progress-wrap"><div class="progress-bar ${progressColor(uAvg)}" style="width:${uAvg}%"></div></div>
-        </div>
+    document.getElementById('teamProgressBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+        ${DB.users.filter(u=>u.role==='user').map(u=>{
+          const ut   = DB.tasks.filter(t=>t.assignee===u.id);
+          const uDone= ut.filter(t=>t.status==='done').length;
+          const uOvd = ut.filter(t=>getTaskStatus(t)==='overdue').length;
+          const uAvg = ut.length ? Math.round(ut.reduce((s,t)=>s+t.progress,0)/ut.length) : 0;
+          const r2=22, circ2=2*Math.PI*r2;
+          const col= uAvg>=70?'var(--green)':uAvg>=40?'var(--yellow2)':'var(--accent)';
+          return `<div onclick="goToTasks({userId:${u.id}})" title="ดูงานของ ${u.name}" style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.cssText+=';transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+            <div class="ring-wrap" style="width:60px;height:60px;margin:0 auto 10px">
+              <svg width="60" height="60" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="${r2}" fill="none" stroke="var(--bg4)" stroke-width="5"/>
+                <circle cx="30" cy="30" r="${r2}" fill="none" stroke="${col}" stroke-width="5"
+                  stroke-dasharray="${circ2}" stroke-dashoffset="${circ2*(1-uAvg/100)}"
+                  stroke-linecap="round" style="transition:stroke-dashoffset .8s ease"/>
+              </svg>
+              <span class="ring-center" style="color:${col};font-size:12px">${uAvg}%</span>
+            </div>
+            ${avatarHtml(u,32)}
+            <div style="font-weight:600;font-size:13px;margin-top:8px">${u.name}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${u.position||u.dept||''}</div>
+            <div style="display:flex;justify-content:center;gap:12px;margin-top:10px;font-size:11px">
+              <span style="color:var(--green)">✅ ${uDone}</span>
+              <span style="color:var(--text2)">📋 ${ut.length}</span>
+              ${uOvd?`<span style="color:var(--red)">🚨 ${uOvd}</span>`:''}
+            </div>
+          </div>`;
+        }).join('')}
       </div>`;
-    }).join('');
   } else { teamCard.style.display='none'; }
+
+  // ── Activity Feed ────────────────────────────────────────────
+  const feedEl = document.getElementById('activityFeed');
+  if (feedEl) {
+    const logs = (DB.auditLog||[]).slice(-15).reverse();
+    const colorMap = {'สร้างงาน':'#3fb950','แก้ไขงาน':'#58a6ff','เสร็จสิ้น':'#bc8cff','ลบ':'#f85149','เข้าสู่ระบบ':'#6e7681'};
+    feedEl.innerHTML = logs.length ? logs.map(l=>{
+      const col = Object.entries(colorMap).find(([k])=>l.action?.includes(k))?.[1]||'var(--text3)';
+      // พยายามหา taskId จาก detail เพื่อ deep-link
+      const taskNameMatch = (l.detail||'').match(/"([^"]+)"/);
+      const linkedTask = taskNameMatch ? DB.tasks.find(t=>t.name===taskNameMatch[1]) : null;
+      const clickAttr = linkedTask
+        ? `onclick="showTaskDetail(${linkedTask.id})" style="cursor:pointer"`
+        : l.action?.includes('งาน') ? `onclick="goToTasks({})" style="cursor:pointer"` : '';
+      return `<div class="activity-item" ${clickAttr} onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''" style="border-radius:6px;padding:8px 4px;${linkedTask||l.action?.includes('งาน')?'cursor:pointer':''}">
+        <div class="activity-dot" style="background:${col}"></div>
+        <div class="activity-text"><strong>${l.action||''}</strong> — ${(l.detail||'').slice(0,60)}${(l.detail||'').length>60?'…':''}</div>
+        <div class="activity-time">${l.date||''}</div>
+      </div>`;
+    }).join('')
+    : '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">ยังไม่มีกิจกรรม</div>';
+  }
 }
 function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+// ── Deep-link helper: ไปหน้างานพร้อม filter ──────────────────
+function goToTasks(opts={}) {
+  // opts: { status, userId, priority, search }
+  showPage('tasks');
+  setTimeout(()=>{
+    const fs = document.getElementById('filterStatus');
+    const fu = document.getElementById('filterUser');
+    const fp = document.getElementById('filterPriority');
+    const ss = document.getElementById('searchTask');
+    if (fs) fs.value = opts.status   || '';
+    if (fu) fu.value = opts.userId   || '';
+    if (fp) fp.value = opts.priority || '';
+    if (ss) ss.value = opts.search   || '';
+    renderTasksPage();
+  }, 50);
+}
 
 // ============================================================
 // TASKS VIEW
@@ -3493,11 +3724,20 @@ function renderTasksPage() {
   else renderKanban();
 }
 
+function renderTasksTableWith(tasks, search) {
+  const wrap = document.getElementById('tasksTableWrap');
+  if (!tasks.length) { wrap.innerHTML='<div class="empty-state"><div class="icon">🗂️</div><p>ไม่พบงาน</p></div>'; return; }
+  wrap.innerHTML = buildTasksTableHtml(tasks, search);
+}
 function renderTasksTable() {
   const { tasks, search } = getFilteredTasks();
   const wrap = document.getElementById('tasksTableWrap');
   if (!tasks.length) { wrap.innerHTML='<div class="empty-state"><div class="icon">🗂️</div><p>ไม่พบงาน</p></div>'; return; }
-  wrap.innerHTML = `<div class="card"><div class="table-scroll"><table>
+  wrap.innerHTML = buildTasksTableHtml(tasks, search);
+}
+
+function buildTasksTableHtml(tasks, search='') {
+  return `<div class="card"><div class="table-scroll"><table>
     <thead><tr><th>ชื่องาน</th><th>Project</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>Priority</th><th>คืบหน้า</th><th>กำหนดส่ง</th><th>จัดการ</th></tr></thead>
     <tbody>${tasks.map(t=>{
       const u=getUser(t.assignee); const st=getTaskStatus(t); const sm=STATUS_MAP[st]||STATUS_MAP.pending;
@@ -5106,12 +5346,45 @@ function renderAnalytics() {
   setTimeout(renderAnalyticsExtra, 100);
   const allTasks = currentUser.role==='admin' ? DB.tasks : DB.tasks.filter(t=>t.assignee===currentUser.id);
   const now = new Date();
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const gc = isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';
+  const tc = isDark?'#768390':'#666';
+
+  // === KPI Summary ===
+  const totalT   = allTasks.length;
+  const doneT    = allTasks.filter(t=>t.status==='done').length;
+  const overdueT = allTasks.filter(t=>getTaskStatus(t)==='overdue').length;
+  const doneRate = totalT ? Math.round(doneT/totalT*100) : 0;
+  const allDoneTasks = DB.tasks.filter(t=>t.status==='done'&&t.doneAt&&t.due);
+  const onTimeCount  = allDoneTasks.filter(t=>t.doneAt<=t.due).length;
+  const onTimeRate   = allDoneTasks.length ? Math.round(onTimeCount/allDoneTasks.length*100) : 0;
+  const totalHours   = Math.round(DB.tasks.reduce((s,t)=>s+totalLogged(t),0)/60);
+  const kpiEl = document.getElementById('analyticsKpi');
+  const kpiStyle = 'cursor:pointer;transition:transform .15s,box-shadow .15s' +
+    ';onmouseenter="this.style.transform=\'translateY(-2px)\'"';
+  if (kpiEl) kpiEl.innerHTML = `
+    <div class="kpi-card kpi-blue" onclick="goToTasks({})" title="ดูงานทั้งหมด" style="cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div class="kpi-num kpi-blue">${totalT}</div>
+      <div class="kpi-desc">📋 งานทั้งหมด →</div>
+    </div>
+    <div class="kpi-card kpi-green" onclick="goToTasks({status:'done'})" title="ดูงานเสร็จสิ้น" style="cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div class="kpi-num kpi-green">${doneRate}%</div>
+      <div class="kpi-desc">✅ อัตราความสำเร็จ →</div>
+    </div>
+    <div class="kpi-card kpi-yellow" onclick="goToTasks({status:'done'})" title="ดูงานที่ส่งตรงเวลา" style="cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div class="kpi-num kpi-yellow">${onTimeRate}%</div>
+      <div class="kpi-desc">⏱️ ส่งตรงเวลา →</div>
+    </div>
+    <div class="kpi-card kpi-purple" onclick="goToTasks({search:''})" title="ดูงานที่มีการบันทึกเวลา" style="cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      <div class="kpi-num kpi-purple">${totalHours}h</div>
+      <div class="kpi-desc">🕐 ชั่วโมงรวม →</div>
+    </div>`;
 
   // === On-time Rate by User ===
   const userOnTime = DB.users.map(u=>{
     const ut = DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done');
     const onTime = ut.filter(t=>t.doneAt&&t.due&&t.doneAt<=t.due).length;
-    return { name:u.name, onTime, total:ut.length, rate:ut.length?Math.round(onTime/ut.length*100):0 };
+    return { id:u.id, name:u.name, onTime, total:ut.length, rate:ut.length?Math.round(onTime/ut.length*100):0 };
   }).filter(u=>u.total>0);
 
   // === Burndown (last 30 days) ===
@@ -5128,46 +5401,73 @@ function renderAnalytics() {
     const ut=DB.tasks.filter(t=>t.assignee===u.id);
     const logged=ut.reduce((s,t)=>s+totalLogged(t),0);
     const estimated=ut.reduce((s,t)=>s+(t.estimate||0)*60,0);
-    return {name:u.name,logged,estimated};
+    return {id:u.id,name:u.name.split(' ')[0],logged,estimated};
   }).filter(u=>u.logged>0||u.estimated>0);
 
   // === Priority distribution ===
   const priCount={high:0,medium:0,low:0};
   allTasks.forEach(t=>{ const p=t.priority||'medium'; priCount[p]=(priCount[p]||0)+1; });
 
-  // --- Fill On-time Rate ---
+  // --- On-time Rate (card style) ---
   const ontimeEl = document.getElementById('ontimeBody');
-  if(ontimeEl){
-    if(!userOnTime.length){
+  if (ontimeEl) {
+    if (!userOnTime.length) {
       ontimeEl.innerHTML='<div style="color:var(--text3);text-align:center;padding:30px">ยังไม่มีข้อมูล<br><small>จำเป็นต้องมีงานที่เสร็จแล้ว</small></div>';
     } else {
-      ontimeEl.innerHTML = userOnTime.map(u=>`
-        <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span style="font-size:13px;font-weight:600">${u.name}</span>
-            <span style="font-weight:700;color:${u.rate>=70?'var(--green)':u.rate>=40?'var(--yellow2)':'var(--red)'}">${u.rate}% <span style="color:var(--text3);font-weight:400;font-size:11px">(${u.onTime}/${u.total} งาน)</span></span>
+      ontimeEl.innerHTML = userOnTime.map(u=>{
+        const col = u.rate>=70?'var(--green)':u.rate>=40?'var(--yellow2)':'var(--red)';
+        const r=20, circ=2*Math.PI*r;
+        return `<div onclick="goToTasks({userId:${u.id},status:'done'})" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+          <div class="ring-wrap" style="width:50px;height:50px;flex-shrink:0">
+            <svg width="50" height="50" viewBox="0 0 50 50">
+              <circle cx="25" cy="25" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="4"/>
+              <circle cx="25" cy="25" r="${r}" fill="none" stroke="${col}" stroke-width="4"
+                stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-u.rate/100)}"
+                stroke-linecap="round" style="transition:stroke-dashoffset .7s ease;transform-origin:center;transform:rotate(-90deg)"/>
+            </svg>
+            <span class="ring-center" style="color:${col};font-size:10px">${u.rate}%</span>
           </div>
-          <div class="progress-wrap" style="height:8px"><div class="progress-bar ${u.rate>=70?'progress-green':u.rate>=40?'progress-yellow':'progress-red'}" style="width:${u.rate}%"></div></div>
-        </div>`).join('');
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">${u.name}</div>
+            <div style="font-size:11px;color:var(--text2)">ส่งตรงเวลา ${u.onTime} จาก ${u.total} งาน</div>
+            <div style="background:var(--bg4);border-radius:4px;height:5px;margin-top:6px;overflow:hidden">
+              <div style="height:100%;width:${u.rate}%;background:${col};border-radius:4px;transition:width .7s ease"></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
     }
   }
 
-  // --- Fill Time Tracking ---
+  // --- Time Tracking (comparison bars) ---
   const timeEl = document.getElementById('timeTrackBody');
-  if(timeEl){
-    if(!timeByUser.length){
+  if (timeEl) {
+    if (!timeByUser.length) {
       timeEl.innerHTML='<div style="color:var(--text3);text-align:center;padding:30px">ยังไม่มีการบันทึกเวลา<br><small>กด ▶ Start Timer ในรายละเอียดงาน</small></div>';
     } else {
-      timeEl.innerHTML = timeByUser.map(u=>`
-        <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
-            <span style="font-weight:600">${u.name}</span>
-            <span style="color:var(--text2)">${fmtHours(u.logged)} <span style="color:var(--text3)">/ ${fmtHours(u.estimated)} ประมาณการ</span></span>
+      const maxMin = Math.max(1,...timeByUser.map(u=>Math.max(u.logged,u.estimated)));
+      timeEl.innerHTML = timeByUser.map(u=>{
+        const logPct = Math.round(u.logged/maxMin*100);
+        const estPct = Math.round(u.estimated/maxMin*100);
+        const over   = u.estimated && u.logged > u.estimated;
+        return `<div onclick="goToTasks({userId:${u.id}})" style="margin-bottom:16px;cursor:pointer;padding:8px;border-radius:8px;transition:background .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+            <span style="font-weight:600">${u.name} →</span>
+            <span style="color:${over?'var(--red)':'var(--text2)'}">
+              ${fmtHours(u.logged)} ${u.estimated?`/ ${fmtHours(u.estimated)} est.`:''}
+              ${over?'<span style="color:var(--red)">⚠️ เกิน</span>':''}
+            </span>
           </div>
-          <div class="progress-wrap" style="height:8px">
-            <div class="progress-bar ${u.estimated&&u.logged<=u.estimated?'progress-green':'progress-red'}" style="width:${u.estimated?Math.min(100,Math.round(u.logged/u.estimated*100)):100}%"></div>
+          <div style="position:relative;height:10px;background:var(--bg4);border-radius:5px;overflow:hidden">
+            ${u.estimated?`<div style="position:absolute;height:100%;width:${estPct}%;background:var(--border);border-radius:5px"></div>`:''}
+            <div style="position:absolute;height:100%;width:${logPct}%;background:${over?'var(--red)':'var(--green)'};border-radius:5px;transition:width .7s ease"></div>
           </div>
-        </div>`).join('');
+          <div style="display:flex;gap:12px;font-size:10px;color:var(--text3);margin-top:3px">
+            <span style="color:var(--green)">■ บันทึกแล้ว</span>
+            ${u.estimated?'<span>■ ประมาณการ</span>':''}
+          </div>
+        </div>`;
+      }).join('');
     }
   }
 
@@ -5176,12 +5476,13 @@ function renderAnalytics() {
   destroyChart('chartPriority');
 
   setTimeout(()=>{
-    // Burndown
+    // Burndown — gradient fill
     const bCtx = document.getElementById('chartBurndown');
     if(bCtx){
-      const isDark = document.documentElement.getAttribute('data-theme')!=='light';
-      const gridColor = isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
-      const tickColor = isDark?'#768390':'#666';
+      const bCanvas = bCtx.getContext('2d');
+      const grad = bCanvas.createLinearGradient(0,0,0,200);
+      grad.addColorStop(0,'rgba(88,166,255,0.25)');
+      grad.addColorStop(1,'rgba(88,166,255,0)');
       charts['chartBurndown'] = new Chart(bCtx, {
         type:'line',
         data:{
@@ -5190,41 +5491,67 @@ function renderAnalytics() {
             label:'งานที่เหลือ',
             data: days30.map(d=>d.remaining),
             borderColor:'#58a6ff',
-            backgroundColor:'rgba(88,166,255,0.12)',
-            fill:true, tension:0.4, pointRadius:2, pointHoverRadius:5,
-            borderWidth:2
+            backgroundColor: grad,
+            fill:true, tension:0.45,
+            pointRadius: days30.map((_,i)=>i%5===0?4:0),
+            pointHoverRadius:7,
+            pointBackgroundColor:'#58a6ff',
+            borderWidth:2.5,
           }]
         },
         options:{
           responsive:true, maintainAspectRatio:true,
-          plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>days30[i[0].dataIndex].date}}},
+          animation:{duration:700,easing:'easeOutQuart'},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor: isDark?'#1c2128':'#fff',
+              titleColor: isDark?'#e6edf3':'#1f2328',
+              bodyColor: isDark?'#8b949e':'#555',
+              borderColor: isDark?'#30363d':'#ddd',
+              borderWidth:1,
+              callbacks:{title:i=>days30[i[0].dataIndex].date, label:ctx=>`งานที่เหลือ: ${ctx.raw} งาน`}
+            }
+          },
           scales:{
-            x:{ticks:{color:tickColor,maxRotation:0},grid:{color:gridColor}},
-            y:{ticks:{color:tickColor,stepSize:1},grid:{color:gridColor},min:0}
+            x:{ticks:{color:tc,maxRotation:0,font:{family:'Sarabun',size:11}},grid:{color:gc}},
+            y:{ticks:{color:tc,stepSize:1},grid:{color:gc},min:0}
           }
         }
       });
     }
 
-    // Priority Doughnut
+    // Priority — polar area for variety
     const pCtx = document.getElementById('chartPriority');
     if(pCtx){
+      const borderCol = isDark?'#0d1117':'#fff';
       charts['chartPriority'] = new Chart(pCtx, {
         type:'doughnut',
         data:{
-          labels:['🔴 High','🟡 Medium','🟢 Low'],
+          labels:['🔴 สูง','🟡 กลาง','🟢 ต่ำ'],
           datasets:[{
             data:[priCount.high,priCount.medium,priCount.low],
-            backgroundColor:['#f85149','#f0c040','#3fb950'],
-            borderWidth:0, hoverOffset:6
+            backgroundColor:['rgba(248,81,73,.85)','rgba(240,192,64,.85)','rgba(63,185,80,.85)'],
+            borderColor: borderCol,
+            borderWidth:3, hoverOffset:10,
           }]
         },
         options:{
           responsive:true, maintainAspectRatio:true,
+          cutout:'60%',
+          animation:{duration:700,easing:'easeOutBounce'},
           plugins:{
-            legend:{position:'bottom',labels:{color:'#a0aec0',font:{size:12},padding:16}},
-            tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} งาน`}}
-          }
+            legend:{position:'bottom',labels:{color:tc,font:{family:'Sarabun',size:12},padding:16,usePointStyle:true}},
+            tooltip:{
+              backgroundColor: isDark?'#1c2128':'#fff',
+              titleColor: isDark?'#e6edf3':'#1f2328',
+              bodyColor: isDark?'#8b949e':'#555',
+              borderColor: isDark?'#30363d':'#ddd',
+              borderWidth:1,
+              callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} งาน (${allTasks.length?Math.round(ctx.raw/allTasks.length*100):0}%)`}
+            }
+          },
+          onClick(_e,els){ if(els.length){ const pKeys=['high','medium','low']; goToTasks({priority:pKeys[els[0].index]}); } }
         }
       });
     }
@@ -5758,7 +6085,7 @@ ${recentDone||'ยังไม่มี'}
 /* ── Claude API ── */
 async function aiCallClaude(userMsg) {
   const key   = localStorage.getItem('wt_ai_key') || '';
-  const model = localStorage.getItem('wt_ai_model') || 'claude-haiku-4-5';
+  const model = localStorage.getItem('wt_ai_model') || 'claude-haiku-4-5-20251001';
   if (!key) throw new Error('ยังไม่ได้ตั้งค่า API Key กรุณาไปที่ ⚙️ ตั้งค่า');
 
   const systemPrompt = buildWorkTrackContext();
@@ -5963,7 +6290,7 @@ function renderAiMarkdown(md) {
 function openAiConfig() {
   const provider = localStorage.getItem('wt_ai_provider') || 'offline';
   const key      = localStorage.getItem('wt_ai_key')      || '';
-  const model    = localStorage.getItem('wt_ai_model')    || 'claude-haiku-4-5';
+  const model    = localStorage.getItem('wt_ai_model')    || 'claude-haiku-4-5-20251001';
   document.getElementById('aiProvider').value = provider;
   document.getElementById('aiApiKey').value   = key;
   aiProviderChanged();
@@ -5990,9 +6317,9 @@ function aiProviderChanged() {
     if (prov === 'claude') {
       hint.textContent = '— จาก console.anthropic.com';
       linkEl.innerHTML = '🔗 รับ Key ที่ <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>';
-      modelSel.innerHTML = `<option value="claude-haiku-4-5">Claude Haiku 4.5 (เร็ว · ถูก)</option>
-        <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (สมดุล)</option>
-        <option value="claude-opus-4-5">Claude Opus 4.5 (ฉลาดสุด)</option>`;
+      modelSel.innerHTML = `<option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (เร็ว · ถูก)</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (สมดุล)</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 (ฉลาดสุด)</option>`;
       document.getElementById('aiApiKey').placeholder = 'sk-ant-api03-...';
     } else {
       hint.textContent = '— จาก platform.openai.com';
@@ -6043,7 +6370,7 @@ async function aiTestKey() {
 function aiSaveConfig() {
   const prov  = document.getElementById('aiProvider').value;
   const key   = document.getElementById('aiApiKey').value.trim();
-  const model = document.getElementById('aiModel')?.value || 'claude-haiku-4-5';
+  const model = document.getElementById('aiModel')?.value || 'claude-haiku-4-5-20251001';
   localStorage.setItem('wt_ai_provider', prov);
   localStorage.setItem('wt_ai_key',      key);
   localStorage.setItem('wt_ai_model',    model);
@@ -6349,40 +6676,109 @@ function quickAddTaskToKanban(status, inputId) {
 // ANALYTICS — WORKLOAD & DUE-MONTH CHARTS
 // ============================================================
 function renderAnalyticsExtra() {
-  // Workload per user chart
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const gc = isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';
+  const tc = isDark?'#768390':'#666';
+  const borderCol = isDark?'#0d1117':'#fff';
+  const tooltipStyle = {
+    backgroundColor: isDark?'#1c2128':'#fff',
+    titleColor: isDark?'#e6edf3':'#1f2328',
+    bodyColor: isDark?'#8b949e':'#555',
+    borderColor: isDark?'#30363d':'#ddd',
+    borderWidth:1,
+  };
+
+  // Workload — grouped bar
   const users = DB.users.filter(u=>u.role==='user');
   const wlLabels = users.map(u=>u.name.split(' ')[0]);
-  const wlActive = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length);
-  const wlDone   = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done').length);
+  const wlActive  = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length);
+  const wlDone    = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done').length);
+  const wlOverdue = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&getTaskStatus(t)==='overdue').length);
   destroyChart('chartWorkload');
   const wlCtx = document.getElementById('chartWorkload'); if (!wlCtx) return;
-  charts.workload = new Chart(wlCtx.getContext('2d'),{
+  charts.workload = new Chart(wlCtx.getContext('2d'), {
     type:'bar',
-    data:{labels:wlLabels,datasets:[
-      {label:'งาน Active',data:wlActive,backgroundColor:'#58a6ff',borderRadius:6},
-      {label:'เสร็จสิ้น', data:wlDone, backgroundColor:'rgba(63,185,80,0.35)',borderRadius:6}
+    data:{labels:wlLabels, datasets:[
+      {label:'กำลังทำ',  data:wlActive,  backgroundColor:'rgba(88,166,255,.85)',  borderRadius:6, borderSkipped:false},
+      {label:'เสร็จแล้ว',data:wlDone,   backgroundColor:'rgba(63,185,80,.65)',   borderRadius:6, borderSkipped:false},
+      {label:'เกินกำหนด',data:wlOverdue,backgroundColor:'rgba(248,81,73,.75)',   borderRadius:6, borderSkipped:false},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{family:'Sarabun'},padding:10}}},
-      scales:{x:{ticks:{color:'#8b949e',font:{family:'Sarabun',size:11}},grid:{color:'#21262d'},stacked:false},
-              y:{ticks:{color:'#8b949e',stepSize:1},grid:{color:'#21262d'},min:0}}}
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:700,easing:'easeOutQuart'},
+      onClick(_e, els){
+        if (!els.length) return;
+        const u = users[els[0].index];
+        const dsIdx = els[0].datasetIndex;
+        if (dsIdx===0) goToTasks({userId:u.id, status:'inprogress'});
+        else if (dsIdx===1) goToTasks({userId:u.id, status:'done'});
+        else goToTasks({userId:u.id, status:'overdue'});
+      },
+      plugins:{
+        legend:{position:'bottom',labels:{color:tc,font:{family:'Sarabun',size:11},padding:14,usePointStyle:true}},
+        tooltip:{...tooltipStyle, callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw} งาน — คลิกกรอง`}}
+      },
+      scales:{
+        x:{ticks:{color:tc,font:{family:'Sarabun',size:11}},grid:{display:false}},
+        y:{ticks:{color:tc,stepSize:1},grid:{color:gc},min:0}
+      }
+    }
   });
 
-  // Due by month
+  // Due by month — colored bars
   const now = new Date();
-  const months = [], dueCount = [];
+  const months=[], dueCount=[], monthTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   for(let i=0;i<6;i++){
     const m = new Date(now.getFullYear(), now.getMonth()+i, 1);
-    months.push((m.getMonth()+1)+'/'+m.getFullYear());
+    months.push(monthTH[m.getMonth()]+' '+(m.getFullYear()+543-2500));
     const ym = m.toISOString().substring(0,7);
     dueCount.push(DB.tasks.filter(t=>t.due&&t.due.startsWith(ym)&&t.status!=='done').length);
   }
   destroyChart('chartDueMonth');
   const dmCtx = document.getElementById('chartDueMonth'); if (!dmCtx) return;
-  charts.dueMonth = new Chart(dmCtx.getContext('2d'),{
+  // monthYMs[i] = "YYYY-MM" for each bar
+  const monthYMs = [];
+  for(let i=0;i<6;i++){
+    const m=new Date(now.getFullYear(),now.getMonth()+i,1);
+    monthYMs.push(m.toISOString().substring(0,7));
+  }
+  charts.dueMonth = new Chart(dmCtx.getContext('2d'), {
     type:'bar',
-    data:{labels:months,datasets:[{label:'งานครบกำหนด',data:dueCount,backgroundColor:dueCount.map(v=>v>5?'#f85149':v>2?'#f0c040':'#3fb950'),borderRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#8b949e',font:{family:'Sarabun',size:11}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',stepSize:1},grid:{color:'#21262d'},min:0}}}
+    data:{labels:months, datasets:[{
+      label:'งานครบกำหนด',
+      data:dueCount,
+      backgroundColor:dueCount.map(v=>v>5?'rgba(248,81,73,.85)':v>2?'rgba(240,192,64,.85)':'rgba(63,185,80,.85)'),
+      borderRadius:8, borderSkipped:false,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:700,easing:'easeOutQuart'},
+      onClick(_e, els){
+        if (!els.length) return;
+        const ym = monthYMs[els[0].index];
+        // กรองงานครบกำหนดเดือนนั้น
+        document.getElementById('searchTask').value = '';
+        showPage('tasks');
+        setTimeout(()=>{
+          document.getElementById('filterStatus').value = '';
+          document.getElementById('filterUser').value  = '';
+          renderTasksPage();
+          // override filter with custom month check
+          const wrap = document.getElementById('tasksTableWrap');
+          const filtered = DB.tasks.filter(t=>t.due&&t.due.startsWith(ym)&&t.status!=='done');
+          if (!filtered.length){ wrap.innerHTML='<div class="empty-state"><div class="icon">📅</div><p>ไม่มีงานครบกำหนดเดือนนี้</p></div>'; return; }
+          renderTasksTableWith(filtered,'');
+        },60);
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{...tooltipStyle, callbacks:{label:ctx=>`${ctx.raw} งาน — คลิกดูรายการ`}}
+      },
+      scales:{
+        x:{ticks:{color:tc,font:{family:'Sarabun',size:11}},grid:{display:false}},
+        y:{ticks:{color:tc,stepSize:1},grid:{color:gc},min:0}
+      }
+    }
   });
 }
 </script>
@@ -6553,9 +6949,9 @@ window.addEventListener('appinstalled', ()=>{
       <div id="aiModelSection" class="form-group">
         <label style="font-size:13px;font-weight:600">Model</label>
         <select id="aiModel" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;outline:none;margin-top:6px">
-          <option value="claude-haiku-4-5">Claude Haiku 4.5 (เร็ว · ถูก)</option>
-          <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (สมดุล)</option>
-          <option value="claude-opus-4-5">Claude Opus 4.5 (ฉลาดสุด)</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (เร็ว · ถูก)</option>
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (สมดุล)</option>
+          <option value="claude-opus-4-8">Claude Opus 4.8 (ฉลาดสุด)</option>
         </select>
       </div>
       <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7">
