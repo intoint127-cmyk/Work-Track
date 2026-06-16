@@ -1913,6 +1913,24 @@ function jsonpCall(url, params) {
   });
 }
 
+// POST helper — ใช้สำหรับ action ที่ส่งข้อมูลใหญ่ (email body, line message)
+// Apps Script รับ via doPost, ไม่ต้องการ callback
+async function apiPost(action, data={}) {
+  if (!USE_SHEETS || !_effectiveUrl) return null;
+  try {
+    await fetch(_effectiveUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action, data }),
+    });
+    return { ok: true };
+  } catch(e) {
+    console.error('apiPost error:', e);
+    return null;
+  }
+}
+
 // All writes go via GET with action + data encoded in URL params
 // Apps Script handles both ?callback=xxx (JSONP) and plain JSON
 async function apiCall(action, data={}, method='GET') {
@@ -3130,7 +3148,7 @@ async function sendLineNotify(message) {
     return;
   }
   try {
-    await apiCall('sendLine', { token: s.lineToken, message }, 'GET');
+    await apiPost('sendLineNotify', { token: s.lineToken, message });
   } catch(e) { console.error('Line Notify error:', e); }
 }
 
@@ -3139,7 +3157,7 @@ async function sendEmailNotif(to, subject, body) {
   if (!s.emailEnabled) return;
   if (!USE_SHEETS || !_effectiveUrl) return;
   try {
-    await apiCall('sendEmail', { to, subject, body }, 'GET');
+    await apiPost('sendEmail', { to, subject, body });
   } catch(e) { console.error('Email error:', e); }
 }
 
@@ -3150,12 +3168,10 @@ async function testLineNotify() {
   if (!USE_SHEETS) { resultEl.innerHTML = '<span style="color:var(--yellow2)">⚠️ ต้องเชื่อมต่อ Google Sheets ก่อน</span>'; return; }
   resultEl.innerHTML = '🔄 กำลังส่ง...';
   try {
-    const r = await apiCall('sendLine', {
+    await apiPost('sendLineNotify', {
       token, message: `\n✅ WorkTrack ทดสอบ Line Notify สำเร็จ!\nส่งโดย: ${currentUser.name}\nเวลา: ${new Date().toLocaleString('th-TH')}`
-    }, 'GET');
-    resultEl.innerHTML = r?.ok
-      ? '<span style="color:var(--green)">✅ ส่งสำเร็จ! ตรวจสอบ Line ของคุณ</span>'
-      : `<span style="color:var(--red)">❌ ${r?.error||'ไม่ทราบ error'}</span>`;
+    });
+    resultEl.innerHTML = '<span style="color:var(--green)">✅ ส่งแล้ว! ตรวจสอบ Line ของคุณ (ใช้เวลา 5-10 วินาที)</span>';
   } catch(e) {
     resultEl.innerHTML = `<span style="color:var(--red)">❌ ${e.message}</span>`;
   }
@@ -3168,14 +3184,12 @@ async function testEmail() {
   if (!adminEmail) { resultEl.innerHTML = '<span style="color:var(--yellow2)">⚠️ กรอก Email ของคุณในช่องด้านบนก่อน</span>'; return; }
   resultEl.innerHTML = '🔄 กำลังส่ง...';
   try {
-    const r = await apiCall('sendEmail', {
+    await apiPost('sendEmail', {
       to: adminEmail,
       subject: '[WorkTrack] ทดสอบ Email Notification',
-      body: `สวัสดี ${currentUser.name},\n\nนี่คือ Email ทดสอบจาก WorkTrack\nเวลา: ${new Date().toLocaleString('th-TH')}\n\n--\nWorkTrack Notification System`
-    }, 'GET');
-    resultEl.innerHTML = r?.ok
-      ? `<span style="color:var(--green)">✅ ส่งไปที่ ${adminEmail} แล้ว!</span>`
-      : `<span style="color:var(--red)">❌ ${r?.error||'error'}</span>`;
+      body: `<p>สวัสดี ${currentUser.name},</p><p>นี่คือ Email ทดสอบจาก WorkTrack<br>เวลา: ${new Date().toLocaleString('th-TH')}</p><p>-- WorkTrack Notification System</p>`
+    });
+    resultEl.innerHTML = `<span style="color:var(--green)">✅ ส่งไปที่ ${adminEmail} แล้ว! (ใช้เวลา 5-10 วินาที)</span>`;
   } catch(e) {
     resultEl.innerHTML = `<span style="color:var(--red)">❌ ${e.message}</span>`;
   }
@@ -3233,13 +3247,11 @@ async function sendDailyDigest() {
     const emailList = s.emailEnabled
       ? DB.users.filter(u => u.email).map(u => u.email)
       : [];
-    await apiCall('dailyDigest', {
-      data: JSON.stringify({
-        tasks: DB.tasks,
-        users: DB.users,
-        lineToken: s.lineEnabled ? s.lineToken : null,
-        emailList,
-      })
+    await apiPost('dailyDigest', {
+      tasks: DB.tasks,
+      users: DB.users,
+      lineToken: s.lineEnabled ? s.lineToken : null,
+      emailList,
     });
   } else {
     // ออฟไลน์: แจ้งเตือนใน app เท่านั้น
