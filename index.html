@@ -1941,8 +1941,12 @@ async function apiCall(action, data={}, method='GET') {
     const params = { action };
 
     if(method === 'GET') {
-      // Simple GET params
-      Object.assign(params, data);
+      // JSON.stringify ค่าที่เป็น object ก่อนใส่ URLSearchParams
+      Object.keys(data).forEach(k => {
+        params[k] = (typeof data[k] === 'object' && data[k] !== null)
+          ? JSON.stringify(data[k])
+          : data[k];
+      });
     } else {
       // Encode body data as a single 'data' param
       params.data = JSON.stringify(data);
