@@ -2294,6 +2294,9 @@ function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').substr
 function formatDate(d) { if(!d) return '-'; return new Date(d).toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}); }
 function today() { return new Date().toISOString().split('T')[0]; }
 function avatarHtml(user, size=32) {
+  if (user.avatar) {
+    return `<img src="${user.avatar}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="${user.name}">`;
+  }
   return `<div class="avatar ${user.color}" style="width:${size}px;height:${size}px;font-size:${Math.floor(size*0.38)}px">${getInitials(user.name)}</div>`;
 }
 function priorityHtml(p) {
@@ -3327,8 +3330,14 @@ async function checkAutoNotifications() {
 function initApp() {
   document.getElementById('sidebarName').textContent = currentUser.name;
   document.getElementById('sidebarRole').textContent = currentUser.role === 'admin' ? '👑 Admin' : '👤 User';
-  document.getElementById('sidebarAvatar').className = `avatar ${currentUser.color}`;
-  document.getElementById('sidebarAvatar').textContent = getInitials(currentUser.name);
+  const sav = document.getElementById('sidebarAvatar');
+  if (currentUser.avatar) {
+    sav.className = 'avatar';
+    sav.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+  } else {
+    sav.className = `avatar ${currentUser.color}`;
+    sav.textContent = getInitials(currentUser.name);
+  }
   updateConnectionBanner();
   // แสดงปุ่ม Sheets config เฉพาะ Admin
   const sheetsBtn = document.getElementById('sheetsConfigBtn');
@@ -4674,6 +4683,53 @@ function exportAuditCSV(){
 // ============================================================
 // PROFILE
 // ============================================================
+function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('❌ รูปใหญ่เกิน 2MB กรุณาเลือกรูปขนาดเล็กกว่า', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // resize เป็น 200x200 ก่อนบันทึก
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 200; canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      // crop กลาง
+      const s = Math.min(img.width, img.height);
+      const ox = (img.width - s) / 2, oy = (img.height - s) / 2;
+      ctx.drawImage(img, ox, oy, s, s, 0, 0, 200, 200);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const u = DB.users.find(x => x.id === currentUser.id);
+      if (u) { u.avatar = dataUrl; currentUser.avatar = dataUrl; }
+      saveDB();
+      // อัปเดต session ด้วย
+      try { localStorage.setItem('wt_session', JSON.stringify(currentUser)); } catch(e) {}
+      // อัปเดต sidebar
+      const sav = document.getElementById('sidebarAvatar');
+      sav.className = 'avatar';
+      sav.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+      showToast('✅ เปลี่ยนรูปโปรไฟล์แล้ว', 'success');
+      renderProfile();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAvatar() {
+  const u = DB.users.find(x => x.id === currentUser.id);
+  if (u) { delete u.avatar; delete currentUser.avatar; }
+  saveDB();
+  try { localStorage.setItem('wt_session', JSON.stringify(currentUser)); } catch(e) {}
+  const sav = document.getElementById('sidebarAvatar');
+  sav.className = `avatar ${currentUser.color}`;
+  sav.textContent = getInitials(currentUser.name);
+  sav.innerHTML = getInitials(currentUser.name);
+  showToast('ลบรูปโปรไฟล์แล้ว', 'success');
+  renderProfile();
+}
+
 function renderProfile(){
   const u=currentUser;
   const tasks=DB.tasks.filter(t=>t.assignee===u.id);
@@ -4682,7 +4738,15 @@ function renderProfile(){
   const overdue=tasks.filter(t=>getTaskStatus(t)==='overdue').length;
   document.getElementById('profileBody').innerHTML=`
     <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">
-      <div class="avatar ${u.color}" style="width:72px;height:72px;font-size:28px;margin-bottom:12px">${getInitials(u.name)}</div>
+      <div style="position:relative;display:inline-block;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('avatarFileInput').click()" title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์">
+        ${u.avatar
+          ? `<img src="${u.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block">`
+          : `<div class="avatar ${u.color}" style="width:72px;height:72px;font-size:28px">${getInitials(u.name)}</div>`
+        }
+        <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg2)">📷</div>
+      </div>
+      <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+      ${u.avatar ? `<button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-bottom:6px" onclick="removeAvatar()">🗑 ลบรูป</button>` : ''}
       <div style="font-size:18px;font-weight:700">${u.name}</div>
       <div style="font-size:13px;color:var(--text2);margin-top:4px">${u.position||''} ${u.dept?'• '+u.dept:''}</div>
       <span class="badge ${u.role==='admin'?'badge-red':'badge-blue'}" style="margin-top:8px">${u.role==='admin'?'👑 Admin':'👤 User'}</span>
@@ -6070,7 +6134,7 @@ function toggleAiPanel() {
   document.getElementById('aiPanel').classList.toggle('open', aiPanelOpen);
   document.getElementById('aiFab').classList.toggle('open', aiPanelOpen);
   if (aiPanelOpen) {
-    if (!aiChatHistory.length) aiShowWelcome();
+    if (!aiChatHistory.length) { aiShowWelcome(); aiShuffleQuick(); }
     setTimeout(() => document.getElementById('aiInput').focus(), 300);
   }
 }
@@ -6152,6 +6216,39 @@ function aiCopyMsg(id) {
 function aiInputKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiSend(); }
 }
+const AI_QUICK_POOL = [
+  { label:'📊 สรุปทีมวันนี้',      text:'สรุปสถานะงานทีมวันนี้' },
+  { label:'⚠️ งานเกินกำหนด',      text:'งานไหนเกินกำหนดบ้าง' },
+  { label:'👤 Workload ทีม',       text:'ใครมีงานเยอะที่สุด' },
+  { label:'📈 ความคืบหน้าโปรเจกต์', text:'ความคืบหน้าโปรเจกต์ทั้งหมด' },
+  { label:'🔴 Priority สูง',       text:'งาน Priority สูงที่ยังไม่เสร็จ' },
+  { label:'✅ งานเสร็จล่าสุด',     text:'งานที่เสร็จล่าสุดมีอะไรบ้าง' },
+  { label:'📅 ครบกำหนดสัปดาห์นี้', text:'งานครบกำหนดสัปดาห์นี้' },
+  { label:'👤 งานของฉัน',          text:'งานของฉันมีอะไรบ้าง' },
+  { label:'⏳ งานที่ยังไม่เริ่ม',  text:'งานที่ยังไม่เริ่มมีกี่ชิ้น' },
+  { label:'🔄 กำลังทำอยู่',        text:'งานที่กำลังดำเนินการทั้งหมด' },
+  { label:'🏆 ผลงานทีม',          text:'ใครมีผลงานดีที่สุดในทีม' },
+  { label:'👥 สมาชิกในทีม',       text:'มีสมาชิกในทีมกี่คน' },
+  { label:'📅 งานเดือนนี้',        text:'งานที่เสร็จเดือนนี้' },
+  { label:'🔥 งานด่วนที่สุด',      text:'งานที่ด่วนที่สุดตอนนี้คืออะไร' },
+  { label:'📉 งานคืบหน้าน้อย',    text:'งานไหนมีความคืบหน้าน้อยที่สุด' },
+];
+
+function aiShuffleQuick() {
+  const pool = [...AI_QUICK_POOL];
+  // สุ่ม 5 ข้อ ไม่ซ้ำ
+  const picked = [];
+  while (picked.length < 5 && pool.length) {
+    const i = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(i, 1)[0]);
+  }
+  const wrap = document.getElementById('aiQuickBtns');
+  if (!wrap) return;
+  wrap.innerHTML = picked.map(q =>
+    `<button class="ai-quick-btn" onclick="aiQuickSend('${q.text}')">${q.label}</button>`
+  ).join('');
+}
+
 function aiQuickSend(text) {
   document.getElementById('aiInput').value = text;
   aiSend();
@@ -6196,6 +6293,7 @@ function clearAiChat() {
   document.getElementById('aiMessages').innerHTML = '';
   document.getElementById('aiQuickWrap').style.display = 'flex';
   aiShowWelcome();
+  aiShuffleQuick();
 }
 
 /* ── Context Builder ── */
@@ -6436,10 +6534,67 @@ async function aiOfflineResponse(q) {
     return `## 📅 งานครบกำหนดใน 7 วัน\n\n${list}`;
   }
 
+  // งานของฉัน
+  if (lq.includes('ของฉัน')||lq.includes('งานฉัน')||lq.includes('my task')) {
+    const mine = tasks.filter(t=>t.assignee===currentUser.id);
+    const mDone = mine.filter(t=>t.status==='done').length;
+    const mAct  = mine.filter(t=>t.status==='inprogress').length;
+    const mOver = mine.filter(t=>getTaskStatus(t)==='overdue').length;
+    const mAvg  = mine.length ? Math.round(mine.reduce((s,t)=>s+t.progress,0)/mine.length):0;
+    const upcoming = mine.filter(t=>t.status!=='done'&&t.due).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3);
+    let r = `## 👤 งานของ ${currentUser.name}\n\n`;
+    r += `| | จำนวน |\n|---|---|\n| งานทั้งหมด | **${mine.length}** |\n| เสร็จแล้ว | **${mDone}** |\n| กำลังทำ | **${mAct}** |\n| เกินกำหนด | **${mOver}** |\n| คืบหน้าเฉลี่ย | **${mAvg}%** |\n\n`;
+    if (upcoming.length) r += `**งานที่ใกล้ครบกำหนด:**\n` + upcoming.map(t=>`- ${t.name} (${formatDate(t.due)})`).join('\n');
+    return r;
+  }
+
+  // สมาชิกในทีม / รายชื่อ
+  if (lq.includes('สมาชิก')||lq.includes('ทีม')||lq.includes('team')||lq.includes('user')||lq.includes('ผู้ใช้')) {
+    const list = users.map(u=>{
+      const ut = tasks.filter(t=>t.assignee===u.id);
+      const done = ut.filter(t=>t.status==='done').length;
+      return `- **${u.name}** (${u.dept||u.role}): ${ut.length} งาน, เสร็จ ${done}`;
+    }).join('\n');
+    return `## 👥 สมาชิกในทีม (${users.length} คน)\n\n${list}`;
+  }
+
+  // งานที่ยังไม่เริ่ม / pending
+  if (lq.includes('ยังไม่เริ่ม')||lq.includes('pending')||lq.includes('รอดำเนินการ')||lq.includes('ค้างอยู่')) {
+    const pending = tasks.filter(t=>t.status==='pending');
+    if (!pending.length) return '✅ ไม่มีงานที่รอดำเนินการ';
+    const list = pending.slice(0,8).map(t=>{const u=getUser(t.assignee);return `- **${t.name}** → ${u?u.name:'?'}${t.due?' (ครบ '+formatDate(t.due)+')':''}`;}).join('\n');
+    return `## ⏳ งานที่ยังไม่เริ่ม (${pending.length} รายการ)\n\n${list}`;
+  }
+
+  // ความสำเร็จ / achievement
+  if (lq.includes('สำเร็จ')||lq.includes('achievement')||lq.includes('ผลงาน')||lq.includes('ดีที่สุด')) {
+    const done = tasks.filter(t=>t.status==='done');
+    const byUser = users.map(u=>({name:u.name, count:done.filter(t=>t.assignee===u.id).length})).sort((a,b)=>b.count-a.count);
+    const top3 = byUser.slice(0,3);
+    return `## 🏆 ผลงานทีม\n\n**Top ผลงาน:**\n${top3.map((u,i)=>`${['🥇','🥈','🥉'][i]} ${u.name}: ${u.count} งานเสร็จ`).join('\n')}\n\n**รวมทั้งทีม:** ${done.length} งานเสร็จสิ้นจาก ${tasks.length} งาน (${tasks.length?Math.round(done.length/tasks.length*100):0}%)`;
+  }
+
+  // กำลังทำ / inprogress
+  if (lq.includes('กำลังทำ')||lq.includes('inprogress')||lq.includes('กำลังดำเนิน')) {
+    const active = tasks.filter(t=>t.status==='inprogress').sort((a,b)=>b.progress-a.progress);
+    if (!active.length) return 'ยังไม่มีงานที่อยู่ในสถานะ "กำลังทำ"';
+    const list = active.slice(0,8).map(t=>{const u=getUser(t.assignee);return `- **${t.name}** ${t.progress}% → ${u?u.name:'?'}`;}).join('\n');
+    return `## 🔄 งานที่กำลังดำเนินการ (${active.length} งาน)\n\n${list}`;
+  }
+
+  // เดือนนี้ / สัปดาห์นี้
+  if (lq.includes('เดือนนี้')||lq.includes('this month')||lq.includes('สัปดาห์นี้')||lq.includes('this week')) {
+    const isWeek = lq.includes('สัปดาห์') || lq.includes('week');
+    const cutoff = new Date(); if(isWeek) cutoff.setDate(cutoff.getDate()-7); else cutoff.setDate(1);
+    const cutStr = cutoff.toISOString().split('T')[0];
+    const newTasks = tasks.filter(t=>t.createdAt>=cutStr);
+    const doneTasks2 = tasks.filter(t=>t.status==='done'&&(t.doneAt||'')>=cutStr);
+    return `## 📅 ${isWeek?'สัปดาห์นี้':'เดือนนี้'}\n\n- งานที่สร้างใหม่: **${newTasks.length}** รายการ\n- งานที่เสร็จ: **${doneTasks2.length}** รายการ\n${doneTasks2.length?'\n'+doneTasks2.slice(0,5).map(t=>`  ✅ ${t.name}`).join('\n'):''}`;
+  }
+
   // default
-  return `🤖 ฉันอยู่ใน **Offline Smart Mode** — รองรับคำถามเกี่ยวกับ:\n\n` +
-    `- 📊 สรุปสถานะงานทีม\n- ⚠️ งานเกินกำหนด\n- 👥 Workload ของสมาชิก\n` +
-    `- 🔴 งาน Priority สูง\n- 🗂️ ความคืบหน้าโปรเจกต์\n- ✅ งานที่เสร็จล่าสุด\n- 📅 งานครบกำหนดเร็วๆ นี้\n\n` +
+  return `🤖 ฉันอยู่ใน **Offline Smart Mode** — ลองถามว่า:\n\n` +
+    `- "งานของฉันมีอะไรบ้าง"\n- "ใครมีงานเยอะที่สุด"\n- "งานที่กำลังทำทั้งหมด"\n- "งานเกินกำหนดมีกี่ชิ้น"\n- "สรุปทีมวันนี้"\n- "ความคืบหน้าโปรเจกต์"\n- "งานครบกำหนดสัปดาห์นี้"\n\n` +
     `หรือตั้งค่า **Claude / OpenAI API Key** ที่ ⚙️ เพื่อถามได้ทุกเรื่องอย่างฉลาดยิ่งขึ้น`;
 }
 
@@ -7021,11 +7176,8 @@ window.addEventListener('appinstalled', ()=>{
 
   <!-- Quick prompts -->
   <div class="ai-quick-wrap" id="aiQuickWrap">
-    <button class="ai-quick-btn" onclick="aiQuickSend('📊 สรุปสถานะงานทีมวันนี้')">📊 สรุปทีมวันนี้</button>
-    <button class="ai-quick-btn" onclick="aiQuickSend('⚠️ งานไหนเกินกำหนดบ้าง?')">⚠️ งานเกินกำหนด</button>
-    <button class="ai-quick-btn" onclick="aiQuickSend('👤 ใครมีงานเยอะที่สุด?')">👤 Workload</button>
-    <button class="ai-quick-btn" onclick="aiQuickSend('📈 ความคืบหน้าโปรเจกต์ทั้งหมด')">📈 โปรเจกต์</button>
-    <button class="ai-quick-btn" onclick="aiQuickSend('🔴 งาน Priority สูงที่ยังไม่เสร็จ')">🔴 Priority สูง</button>
+    <div id="aiQuickBtns" style="display:flex;flex-wrap:wrap;gap:6px;flex:1"></div>
+    <button class="ai-quick-btn" style="opacity:.6;font-size:11px;flex-shrink:0" onclick="aiShuffleQuick()">🔀</button>
   </div>
 
   <!-- Input -->
