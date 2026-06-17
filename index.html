@@ -1976,7 +1976,10 @@ async function loadDBFromSheets() {
     }
 
     // Map Sheets data → DB structure
-    DB.users    = res.users    || [];
+    // Merge users: เก็บ local users ที่ไม่มีใน Sheets ไว้ด้วย (กันหลุด login)
+    const sheetsUsers = res.users || [];
+    const localOnly   = DB.users.filter(lu => !sheetsUsers.find(su => String(su.id) === String(lu.id)));
+    DB.users    = [...sheetsUsers, ...localOnly];
     DB.projects = res.projects || [];
 
     // Merge task data with comments/subtasks/timelog
