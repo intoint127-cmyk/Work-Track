@@ -3980,20 +3980,24 @@ function showTaskDetail(id) {
   const blocking  = DB.tasks.filter(tx=>(tx.deps||[]).includes(t.id)&&tx.status!=='done');
 
   // Sub-tasks HTML
-  const subHtml = (t.subtasks||[]).length===0 ? '' : `
+  const subs = t.subtasks||[];
+  const subHtml = `
     <div style="margin-bottom:16px">
-      <div style="font-weight:600;margin-bottom:8px">📋 Sub-tasks (${(t.subtasks||[]).filter(s=>s.done).length}/${(t.subtasks||[]).length})</div>
+      <div style="font-weight:600;margin-bottom:8px">📋 Sub-tasks${subs.length?` (${subs.filter(s=>s.done).length}/${subs.length})`:''}</div>
       <div id="subtaskList_${t.id}">
-        ${(t.subtasks||[]).map(s=>`
-          <div class="subtask-item">
+        ${subs.length===0?`<div style="font-size:12px;color:var(--text3);padding:6px 0">ยังไม่มี sub-task</div>`:''}
+        ${subs.map(s=>`
+          <div class="subtask-item${s.done?' done-sub':''}">
             <input type="checkbox" class="subtask-check" ${s.done?'checked':''} onchange="toggleSubtask(${t.id},${s.id},this.checked)">
-            <span class="subtask-name${s.done?' subtask-done':''}">${s.name}</span>
-            ${canEdit?`<button class="subtask-del" onclick="deleteSubtask(${t.id},${s.id})">✕</button>`:''}
+            <span class="subtask-name">${s.name}</span>
+            ${canEdit?`<button class="subtask-del" onclick="deleteSubtask(${t.id},${s.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 4px;font-size:14px">✕</button>`:''}
           </div>`).join('')}
       </div>
       ${canEdit?`<div style="display:flex;gap:8px;margin-top:8px">
-        <input type="text" id="newSubtask_${t.id}" placeholder="เพิ่ม sub-task..." style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:12px">
-        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="addSubtask(${t.id})">+</button>
+        <input type="text" id="newSubtask_${t.id}" placeholder="พิมพ์ชื่อ sub-task แล้วกด Enter หรือ +"
+          style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:12px;outline:none"
+          onkeydown="if(event.key==='Enter')addSubtask(${t.id})">
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px" onclick="addSubtask(${t.id})">+</button>
       </div>`:''}
     </div>`;
 
