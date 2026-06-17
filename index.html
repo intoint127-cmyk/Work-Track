@@ -2393,7 +2393,7 @@ async function doLogin() {
   initApp();
 
   // บันทึก session (ไว้ restore หลัง refresh)
-  try { sessionStorage.setItem('wt_session', JSON.stringify({id: currentUser.id, username: currentUser.username})); } catch(e) {}
+  try { localStorage.setItem('wt_session', JSON.stringify({id: currentUser.id, username: currentUser.username})); } catch(e) {}
 
   // Sheets sync ใน background — ไม่กระทบ login เลย
   if (USE_SHEETS) {
@@ -2414,7 +2414,7 @@ async function doLogin() {
 function doLogout() {
   addAudit('ออกจากระบบ', `${currentUser.name} ออกจากระบบ`);
   saveDB();
-  try { sessionStorage.removeItem('wt_session'); } catch(e) {}
+  try { localStorage.removeItem('wt_session'); } catch(e) {}
   currentUser = null;
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -7320,7 +7320,7 @@ async function reloadFromSheets() {
 // Auto-restore session after refresh
 (function() {
   try {
-    const sess = sessionStorage.getItem('wt_session');
+    const sess = localStorage.getItem('wt_session');
     if (!sess) return;
     const { id } = JSON.parse(sess);
     const user = DB.users.find(u => u.id === id);
@@ -7330,7 +7330,7 @@ async function reloadFromSheets() {
     document.getElementById('appScreen').style.display = 'block';
     initApp();
   } catch(e) {
-    sessionStorage.removeItem('wt_session');
+    localStorage.removeItem('wt_session');
   }
 })();
 </script>
