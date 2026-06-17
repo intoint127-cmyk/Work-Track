@@ -1968,7 +1968,7 @@ async function apiCall(action, data={}, method='GET') {
 async function loadDBFromSheets() {
   showLoadingOverlay(true);
   try {
-    const res = await apiCall('getAllData', {}, 'GET');
+    const res = await apiCall('getAll', {}, 'GET');
     if(!res || res.error) {
       showToast('⚠️ โหลดข้อมูลจาก Sheets ไม่ได้ ใช้ localStorage แทน', 'warn');
       loadDB();
@@ -2020,19 +2020,22 @@ async function loadDBFromSheets() {
 // ============================================================
 // SAVE — เขียนลง Sheets หรือ localStorage
 // ============================================================
-const _pendingSaves = {};
+let _syncTimer = null;
 function saveDB() {
-  // Always save to localStorage as backup
+  // บันทึก localStorage ทุกครั้ง
   try { localStorage.setItem('worktrackDB_v5', JSON.stringify(DB)); } catch(e) {}
 
-  if(!USE_SHEETS) return;
+  if (!USE_SHEETS) return;
 
-  // Debounce writes per action (avoid hammering API)
-  clearTimeout(_pendingSaves._timer);
-  _pendingSaves._timer = setTimeout(() => {
-    // We handle writes per-operation (createTask, updateTask etc.)
-    // saveDB() is used as a signal to refresh UI only
-  }, 300);
+  // Debounce syncAll POST — รอ 1.5s หลังการเปลี่ยนแปลงสุดท้ายแล้วค่อย sync
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    apiPost('syncAll', {
+      tasks:    DB.tasks,
+      users:    DB.users,
+      projects: DB.projects,
+    }).catch(e => console.error('syncAll error:', e));
+  }, 1500);
 }
 
 // ============================================================
@@ -2150,16 +2153,12 @@ async function migrateToSheets() {
   if(!confirm('ย้ายข้อมูลจาก LocalStorage ไปยัง Google Sheets?\n(ข้อมูลใน Sheets จะถูกล้างก่อน)')) return;
 
   showLoadingOverlay(true);
-  // Init sheets first
-  await apiCall('initSheets', {}, 'GET');
-  // Sync all
-  const res = await apiCall('syncAll', {
-    data: {
-      tasks:    DB.tasks,
-      users:    DB.users,
-      projects: DB.projects,
-    }
-  }, 'GET');
+  // Sync all via POST
+  const res = await apiPost('syncAll', {
+    tasks:    DB.tasks,
+    users:    DB.users,
+    projects: DB.projects,
+  });
   showLoadingOverlay(false);
   if(res?.ok) {
     showToast('✅ ย้ายข้อมูลสำเร็จ!', 'success');
@@ -2397,15 +2396,11 @@ async function doLogin() {
 
   // Sheets sync ใน background — ไม่กระทบ login เลย
   if (USE_SHEETS) {
-    setTimeout(async () => {
-      try {
-        const r = await apiCall('syncAll', {
-          data: { users: DB.users, tasks: DB.tasks, projects: DB.projects }
-        }, 'GET');
-        if (r && r.ok) showToast('✅ Sync Google Sheets สำเร็จ', 'success');
-      } catch(e) {
-        showToast('⚠️ Sync Sheets ล้มเหลว (ใช้ LocalStorage แทน)', 'warn');
-      }
+    setTimeout(() => {
+      apiPost('syncAll', {
+        tasks: DB.tasks, users: DB.users, projects: DB.projects,
+      }).then(() => showToast('✅ Sync Google Sheets สำเร็จ', 'success'))
+        .catch(() => showToast('⚠️ Sync Sheets ล้มเหลว (ใช้ LocalStorage แทน)', 'warn'));
     }, 2500);
   }
 }
@@ -4367,20 +4362,8 @@ function saveTask() {
     clearPendingAttachments();
   }
 
-  // Sync to Google Sheets
-  if(USE_SHEETS) {
-    if(editingTaskId) {
-      sheetsUpdateTask(task);
-    } else {
-      sheetsCreateTask(task);
-    }
-    sheetsAddAudit(editingTaskId?'แก้ไขงาน':'สร้างงาน',
-      `${currentUser.name} ${editingTaskId?'แก้ไข':'สร้าง'}งาน "${task?.name||''}"`,
-      currentUser.name);
-  }
-
   buildNotifications();
-  saveDB(); updateArchiveBadge(); updateProjBadge();
+  saveDB(); // saveDB() จะ syncAll ไป Sheets อัตโนมัติ (debounced) updateArchiveBadge(); updateProjBadge();
   closeModal('taskModal');
   const ap=document.querySelector('.page.active');
   if(ap?.id==='pageDashboard') renderDashboard();
@@ -7319,19 +7302,25 @@ async function reloadFromSheets() {
 <script>
 // Auto-restore session after refresh
 (function() {
+  let sess, id, user;
   try {
-    const sess = localStorage.getItem('wt_session');
+    sess = localStorage.getItem('wt_session');
     if (!sess) return;
-    const { id } = JSON.parse(sess);
-    const user = DB.users.find(u => u.id === id);
+    const parsed = JSON.parse(sess);
+    id = parsed.id;
+    // รองรับทั้ง id เป็น number และ string
+    user = DB.users.find(u => u.id == id);
     if (!user) return;
-    currentUser = user;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appScreen').style.display = 'block';
-    initApp();
   } catch(e) {
+    // JSON parse error เท่านั้นที่ลบ session
     localStorage.removeItem('wt_session');
+    return;
   }
+  // initApp แยก try-catch เพื่อไม่ให้ error ใน app ทำให้หลุด login
+  currentUser = user;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  try { initApp(); } catch(e) { console.error('initApp error:', e); }
 })();
 </script>
 
