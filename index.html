@@ -2039,17 +2039,15 @@ function saveDB() {
 // SHEETS-AWARE CRUD WRAPPERS
 // ============================================================
 
-// TASKS
+// TASKS — ใช้ apiPost เพราะ task data ใหญ่เกิน URL limit ของ JSONP GET
 async function sheetsCreateTask(taskData) {
-  const res = await apiCall('createTask', {data: taskData}, 'GET');
-  if(res?.ok) return res.id;
-  return null;
+  return await apiPost('createTask', taskData);
 }
 async function sheetsUpdateTask(taskData) {
-  return await apiCall('updateTask', {data: taskData}, 'GET');
+  return await apiPost('updateTask', taskData);
 }
 async function sheetsDeleteTask(id) {
-  return await apiCall('deleteTask', {id}, 'GET');
+  return await apiPost('deleteTask', { id });
 }
 async function sheetsArchiveTask(id, by) {
   return await apiCall('archiveTask', {id, by}, 'GET');
@@ -2694,12 +2692,17 @@ function renderCalendar() {
   if (calFilterUser)    tasks = tasks.filter(t => t.assignee == calFilterUser);
   if (calFilterProject) tasks = tasks.filter(t => t.projectId == calFilterProject);
 
-  // Build date → tasks map (by due date)
+  // Build date → tasks map (by due date และ start date)
   const taskMap = {};
+  const addToMap = (dateStr, task) => {
+    if (!dateStr) return;
+    if (!taskMap[dateStr]) taskMap[dateStr] = [];
+    if (!taskMap[dateStr].find(x => x.id === task.id)) taskMap[dateStr].push(task);
+  };
   tasks.forEach(t => {
-    if (!t.due) return;
-    if (!taskMap[t.due]) taskMap[t.due] = [];
-    taskMap[t.due].push(t);
+    addToMap(t.due, t);
+    // แสดงบน start date ด้วย ถ้า start ≠ due
+    if (t.start && t.start !== t.due) addToMap(t.start, t);
   });
 
   // Calendar grid: first day of month
