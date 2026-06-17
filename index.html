@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorkTrack— ระบบติดตามงาน</title>
+<title>WorkTrack v5.4 — ระบบติดตามงาน</title>
 <meta name="theme-color" content="#0d1117">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2392,10 +2392,11 @@ async function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
-  initApp();
 
-  // บันทึก session (ไว้ restore หลัง refresh) — เก็บ user object ทั้งก้อน
+  // บันทึก session ก่อน initApp — กันกรณี initApp throw แล้ว session หาย
   try { localStorage.setItem('wt_session', JSON.stringify(currentUser)); } catch(e) {}
+
+  try { initApp(); } catch(e) { console.error('initApp error on login:', e); }
 
   // Sheets sync ใน background — ไม่กระทบ login เลย
   if (USE_SHEETS) {
@@ -4514,7 +4515,7 @@ function populateReportUserSelect(){
   const sel=document.getElementById('reportUser'); sel.innerHTML='';
   const users=currentUser.role==='admin'?DB.users.filter(u=>u.role==='user'):[currentUser];
   users.forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.name;sel.appendChild(o);});
-  document.getElementById('reportUserWrap').style.display=currentUser.role!=='admin'?'none':(document.getElementById('reportType').value==='personal'?'block':'none');
+  const wrap=document.getElementById('reportUserWrap'); if(wrap) wrap.style.display=currentUser.role!=='admin'?'none':(document.getElementById('reportType')?.value==='personal'?'block':'none');
 }
 function renderReportPreview(){
   const type=document.getElementById('reportType').value;
