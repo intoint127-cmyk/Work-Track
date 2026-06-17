@@ -2394,8 +2394,8 @@ async function doLogin() {
   addAudit('เข้าสู่ระบบ', `${currentUser.name} (${currentUser.username}) เข้าสู่ระบบ`);
   initApp();
 
-  // บันทึก session (ไว้ restore หลัง refresh)
-  try { localStorage.setItem('wt_session', JSON.stringify({id: currentUser.id, username: currentUser.username})); } catch(e) {}
+  // บันทึก session (ไว้ restore หลัง refresh) — เก็บ user object ทั้งก้อน
+  try { localStorage.setItem('wt_session', JSON.stringify(currentUser)); } catch(e) {}
 
   // Sheets sync ใน background — ไม่กระทบ login เลย
   if (USE_SHEETS) {
@@ -7305,20 +7305,21 @@ async function reloadFromSheets() {
 <script>
 // Auto-restore session after refresh
 (function() {
-  let sess, id, user;
+  let parsed;
   try {
-    sess = localStorage.getItem('wt_session');
+    const sess = localStorage.getItem('wt_session');
     if (!sess) return;
-    const parsed = JSON.parse(sess);
-    id = parsed.id;
-    // รองรับทั้ง id เป็น number และ string
-    user = DB.users.find(u => u.id == id);
-    if (!user) return;
+    parsed = JSON.parse(sess);
+    if (!parsed || !parsed.id) return;
   } catch(e) {
-    // JSON parse error เท่านั้นที่ลบ session
     localStorage.removeItem('wt_session');
     return;
   }
+  // หา user จาก DB ก่อน (เผื่อมีการอัปเดต) ถ้าไม่เจอใช้ข้อมูลจาก session โดยตรง
+  const fromDB = DB.users.find(u => String(u.id) === String(parsed.id)) ||
+                 (parsed.username && DB.users.find(u => u.username === parsed.username));
+  const user = fromDB || parsed;
+  if (!user || !user.id) return;
   // initApp แยก try-catch เพื่อไม่ให้ error ใน app ทำให้หลุด login
   currentUser = user;
   document.getElementById('loginScreen').style.display = 'none';
