@@ -4735,33 +4735,63 @@ function removeAvatar() {
 }
 
 function renderProfile(){
-  const u=currentUser;
-  const tasks=DB.tasks.filter(t=>t.assignee===u.id);
-  const done=tasks.filter(t=>t.status==='done').length;
-  const avg=tasks.length?Math.round(tasks.reduce((s,t)=>s+t.progress,0)/tasks.length):0;
-  const overdue=tasks.filter(t=>getTaskStatus(t)==='overdue').length;
-  document.getElementById('profileBody').innerHTML=`
+  try {
+  const u = currentUser;
+  if (!u) return;
+  const tasks  = DB.tasks.filter(t => t.assignee === u.id);
+  const done   = tasks.filter(t => t.status === 'done').length;
+  const avg    = tasks.length ? Math.round(tasks.reduce((s,t) => s + t.progress, 0) / tasks.length) : 0;
+  const overdue= tasks.filter(t => getTaskStatus(t) === 'overdue').length;
+
+  const avatarEl = u.avatar
+    ? `<img src="${u.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block">`
+    : `<div class="avatar ${u.color||'blue'}" style="width:72px;height:72px;font-size:28px;display:flex;align-items:center;justify-content:center">${getInitials(u.name||'?')}</div>`;
+
+  const profileBodyEl = document.getElementById('profileBody');
+  if (!profileBodyEl) return;
+
+  profileBodyEl.innerHTML = `
+    <!-- Avatar -->
     <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">
-      <div style="position:relative;display:inline-block;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('avatarFileInput').click()" title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์">
-        ${u.avatar
-          ? `<img src="${u.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block">`
-          : `<div class="avatar ${u.color}" style="width:72px;height:72px;font-size:28px">${getInitials(u.name)}</div>`
-        }
+      <div style="position:relative;display:inline-block;margin-bottom:8px;cursor:pointer"
+           onclick="document.getElementById('avatarFileInput').click()" title="คลิกเพื่อเปลี่ยนรูป">
+        ${avatarEl}
         <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg2)">📷</div>
       </div>
       <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-      ${u.avatar ? `<button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-bottom:6px" onclick="removeAvatar()">🗑 ลบรูป</button>` : ''}
-      <div style="font-size:18px;font-weight:700">${u.name}</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:4px">${u.position||''} ${u.dept?'• '+u.dept:''}</div>
+      ${u.avatar ? `<button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-bottom:4px" onclick="removeAvatar()">🗑 ลบรูป</button>` : ''}
+      <div style="font-size:18px;font-weight:700;margin-top:4px">${u.name || '-'}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px">${u.position||''} ${u.dept ? '• ' + u.dept : ''}</div>
       <span class="badge ${u.role==='admin'?'badge-red':'badge-blue'}" style="margin-top:8px">${u.role==='admin'?'👑 Admin':'👤 User'}</span>
     </div>
-    <div class="info-row"><span class="info-label">ชื่อผู้ใช้:</span><span>@${u.username}</span></div>
+
+    <!-- Info -->
+    <div class="info-row"><span class="info-label">ชื่อผู้ใช้:</span><span>@${u.username||'-'}</span></div>
+    <div class="info-row"><span class="info-label">อีเมล:</span><span>${u.email||'-'}</span></div>
     <div class="info-row"><span class="info-label">แผนก:</span><span>${u.dept||'-'}</span></div>
     <div class="info-row"><span class="info-label">ตำแหน่ง:</span><span>${u.position||'-'}</span></div>
-    <div class="info-row"><span class="info-label">ความปลอดภัย:</span><span style="color:var(--green)">🔒 รหัสผ่านถูก hash แล้ว</span></div>
-    ${u.role==='admin'?`<hr style="border-color:var(--border);margin:16px 0">
+
+    <!-- Change Password -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px">🔑 เปลี่ยนรหัสผ่าน</div>
+    <div id="changePwdInlineAlert"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <input type="password" id="inlineOldPwd" placeholder="รหัสผ่านเดิม"
+        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
+      <input type="password" id="inlineNewPwd" placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
+        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
+      <input type="password" id="inlineConfirmPwd" placeholder="ยืนยันรหัสผ่านใหม่"
+        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
+      <button class="btn btn-primary" style="width:100%" onclick="changePasswordInline()">บันทึกรหัสผ่านใหม่</button>
+    </div>
+
+    ${u.role==='admin' ? `
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
     <div style="font-weight:600;font-size:13px;margin-bottom:10px">⚙️ ตั้งค่าระบบ (Admin)</div>
-    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;justify-content:flex-start;gap:10px" onclick="openCustomFieldsModal()">📋 จัดการ Custom Fields <span style="margin-left:auto;font-size:11px;color:var(--text3)">${(DB.customFields||[]).length} fields</span></button>`:''}
+    <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px" onclick="openCustomFieldsModal()">
+      📋 จัดการ Custom Fields <span style="margin-left:auto;font-size:11px;color:var(--text3)">${(DB.customFields||[]).length} fields</span>
+    </button>` : ''}
+  `;
     `;
   document.getElementById('profileStats').innerHTML=`
     <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
@@ -4777,6 +4807,39 @@ function renderProfile(){
         <span style="font-weight:700;font-size:18px">${avg}%</span>
       </div>
     </div>`;
+  } catch(e) { console.error('renderProfile error:', e); }
+}
+
+function changePasswordInline() {
+  const oldPwd  = document.getElementById('inlineOldPwd')?.value || '';
+  const newPwd  = document.getElementById('inlineNewPwd')?.value || '';
+  const confirm = document.getElementById('inlineConfirmPwd')?.value || '';
+  const alertEl = document.getElementById('changePwdInlineAlert');
+  const show = (msg, type) => {
+    alertEl.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:10px;font-size:13px">${msg}</div>`;
+  };
+
+  const u = DB.users.find(x => x.id === currentUser.id);
+  if (!u) return;
+
+  // ตรวจสอบรหัสเดิม
+  const oldHash = simpleHash(oldPwd);
+  const match = (u.pwdHash && u.pwdHash === oldHash) ||
+                (!u.pwdHash && u.password && u.password === oldPwd);
+  if (!match) return show('❌ รหัสผ่านเดิมไม่ถูกต้อง', 'error');
+  if (newPwd.length < 6) return show('❌ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร', 'error');
+  if (newPwd !== confirm) return show('❌ รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+
+  u.pwdHash = simpleHash(newPwd);
+  u.password = '';
+  currentUser.pwdHash = u.pwdHash;
+  saveDB();
+  try { localStorage.setItem('wt_session', JSON.stringify(currentUser)); } catch(e) {}
+  show('✅ เปลี่ยนรหัสผ่านสำเร็จ', 'success');
+  document.getElementById('inlineOldPwd').value = '';
+  document.getElementById('inlineNewPwd').value = '';
+  document.getElementById('inlineConfirmPwd').value = '';
+  addAudit('เปลี่ยนรหัสผ่าน', `${currentUser.name} เปลี่ยนรหัสผ่านตัวเอง`);
 }
 
 // ============================================================
