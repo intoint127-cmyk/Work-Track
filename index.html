@@ -1175,6 +1175,7 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
           <div class="nav-item" onclick="showPage('calendar')"><span class="nav-icon">📅</span>Calendar</div>
           <div class="nav-item" onclick="showPage('gantt')"><span class="nav-icon">📊</span>Gantt Chart</div>
           <div class="nav-item" id="myTasksNav" onclick="showPage('myTasks')"><span class="nav-icon">👤</span>งานของฉัน</div>
+          <div class="nav-item" id="presentNav" onclick="showPage('present')"><span class="nav-icon">🏆</span>ผลงานของฉัน</div>
         </div>
         <div class="nav-section" id="adminNav" style="display:none">
           <div class="nav-section-label">จัดการ</div>
@@ -1185,8 +1186,8 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
         <div class="nav-section">
           <div class="nav-section-label">ประวัติ</div>
           <div class="nav-item" onclick="showPage('archive')"><span class="nav-icon">🗄️</span>Archive <span class="nav-badge" id="archiveBadge" style="display:none">0</span></div>
-          <div class="nav-item" onclick="showPage('snapshot')"><span class="nav-icon">📸</span>Snapshot</div>
-          <div class="nav-item" onclick="showPage('backup')"><span class="nav-icon">💾</span>Backup / Restore</div>
+          <div class="nav-item" id="snapshotNav" onclick="showPage('snapshot')"><span class="nav-icon">📸</span>Snapshot</div>
+          <div class="nav-item" id="backupNav" onclick="showPage('backup')"><span class="nav-icon">💾</span>Backup / Restore</div>
         </div>
         <div class="nav-section" id="userReportNav">
           <div class="nav-section-label">รายงาน</div>
@@ -1329,8 +1330,20 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
           <div id="myTasksList"></div>
         </div>
 
+        <!-- PRESENT -->
+        <div id="pagePresent" class="page">
+          <div class="filter-bar" style="flex-wrap:wrap;gap:8px" id="presentFilterBar">
+            <select id="presentWho" onchange="renderPresentPage()" style="min-width:160px"></select>
+            <input type="date" id="presentFrom" onchange="renderPresentPage()">
+            <span style="align-self:center;color:var(--text3)">ถึง</span>
+            <input type="date" id="presentTo" onchange="renderPresentPage()">
+            <button class="btn btn-ghost" style="font-size:12px" onclick="printPresent()">🖨️ Print / PDF</button>
+          </div>
+          <div id="presentContent"></div>
+        </div>
+
         <!-- USERS -->
-        
+
         <div id="pageCalendar" class="page">
           <div id="calendarWrap"></div>
         </div>
@@ -3102,6 +3115,8 @@ function saveNotifSettings() {
     trigDone:     document.getElementById('trigDone')?.checked || false,
     trigAssign:   document.getElementById('trigAssign')?.checked ?? true,
     trigMention:  document.getElementById('trigMention')?.checked ?? true,
+    trigUpdate:   document.getElementById('trigUpdate')?.checked ?? true,
+    trigDelete:   document.getElementById('trigDelete')?.checked ?? true,
   };
   localStorage.setItem(NOTIF_KEY, JSON.stringify(s));
 }
@@ -3117,6 +3132,8 @@ function openNotifSettings() {
     trigDone:          s.trigDone || false,
     trigAssign:        s.trigAssign ?? true,
     trigMention:       s.trigMention ?? true,
+    trigUpdate:        s.trigUpdate ?? true,
+    trigDelete:        s.trigDelete ?? true,
   };
   Object.entries(fields).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -3219,6 +3236,27 @@ async function notifyTaskDone(task) {
   sendLineNotify(msg);
 }
 
+async function notifyTaskUpdated(task, diffs) {
+  const s = getNotifSettings();
+  if (!s.trigUpdate) return;
+  const assignee = getUser(task.assignee);
+  if (!assignee || assignee.id === currentUser.id) return;
+  const diffText = diffs && diffs.length ? '\nที่เปลี่ยนแปลง: ' + diffs.map(d=>d.label).join(', ') : '';
+  const msg = `\n✏️ งานของคุณถูกแก้ไข\nงาน: ${task.name}${diffText}\nโดย: ${currentUser.name}`;
+  if (assignee.email) sendEmailNotif(assignee.email, `[WorkTrack] แก้ไขงาน: ${task.name}`, msg);
+  sendLineNotify(msg);
+}
+
+async function notifyTaskDeleted(task) {
+  const s = getNotifSettings();
+  if (!s.trigDelete) return;
+  const assignee = getUser(task.assignee);
+  if (!assignee || assignee.id === currentUser.id) return;
+  const msg = `\n🗑️ งานของคุณถูกลบ/ย้ายไป Archive\nงาน: ${task.name}\nโดย: ${currentUser.name}`;
+  if (assignee.email) sendEmailNotif(assignee.email, `[WorkTrack] ลบงาน: ${task.name}`, msg);
+  sendLineNotify(msg);
+}
+
 async function notifyMention(taskName, mentionedUser) {
   const s = getNotifSettings();
   if (!s.trigMention) return;
@@ -3298,15 +3336,13 @@ function initApp() {
   const notifBtn2 = document.getElementById('notifSettingsBtn');
   if(notifBtn2) notifBtn2.style.display = currentUser.role === 'admin' ? '' : 'none';
 
-  if (currentUser.role === 'admin') {
-    document.getElementById('adminNav').style.display = 'block';
-    document.getElementById('userReportNav').style.display = 'none';
-    document.getElementById('myTasksNav').style.display = 'none';
-  } else {
-    document.getElementById('adminNav').style.display = 'none';
-    document.getElementById('userReportNav').style.display = 'block';
-    document.getElementById('myTasksNav').style.display = 'block';
-  }
+  const isAdmin = currentUser.role === 'admin';
+  document.getElementById('adminNav').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('userReportNav').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('myTasksNav').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('snapshotNav').style.display = isAdmin ? '' : 'none';
+  document.getElementById('backupNav').style.display = isAdmin ? '' : 'none';
+  document.getElementById('presentNav').style.display = '';
 
   const now = new Date();
   document.getElementById('reportFrom').value = new Date(now.getFullYear(), now.getMonth()-2, 1).toISOString().split('T')[0];
@@ -3363,6 +3399,7 @@ function showPage(page) {
     analytics: { el:'pageAnalytics',  title:'📈 Analytics' },
     tasks:     { el:'pageTasks',      title:'✅ งานทั้งหมด' },
     myTasks:   { el:'pageMyTasks',    title:'👤 งานของฉัน' },
+    present:   { el:'pagePresent',   title:'🏆 ผลงานของฉัน' },
     calendar:  { el:'pageCalendar',   title:'📅 Calendar' },
     gantt:     { el:'pageGantt',      title:'📊 Gantt Chart' },
     users:     { el:'pageUsers',      title:'👥 จัดการผู้ใช้' },
@@ -3420,6 +3457,7 @@ function showPage(page) {
   if (page==='audit') renderAuditPage();
   if (page==='archive') renderArchivePage();
   if (page==='snapshot') renderSnapshotPage();
+  if (page==='present')  renderPresentPage();
   if (page==='backup') renderBackupPage();
   if (page==='profile') renderProfile();
   if (page==='gantt')   renderGantt();
@@ -4338,6 +4376,7 @@ function saveTask() {
       if(newData.progress===100&&t.status!=='done'){t.status='done'; t.doneAt=now; setTimeout(()=>notifyTaskDone(t),500);}
       const diffSummary = diffs.map(d=>d.label).join(', ');
       addAudit('แก้ไขงาน', `${currentUser.name} แก้ไขงาน "${t.name}"${diffSummary?' ('+diffSummary+')':''}`);
+      if (diffs.length > 0) setTimeout(() => notifyTaskUpdated(t, diffs), 500);
     }
   } else {
     const t={id:DB.nextTaskId++,...newData,note,
@@ -4388,6 +4427,7 @@ function deleteTask(id){
     });
     if(DB.archive.length>200) DB.archive.pop();
     addAudit('Archive งาน', `${currentUser.name} ย้ายงาน "${t.name}" ไป Archive`);
+    setTimeout(() => notifyTaskDeleted(t), 500);
   }
   DB.tasks=DB.tasks.filter(x=>x.id!==id);
   saveDB(); updateArchiveBadge(); renderTasksPage();
@@ -4850,6 +4890,151 @@ function deleteSnapshot(id) {
 
 // ============================================================
 // BACKUP / RESTORE
+// ============================================================
+// PRESENT PAGE — ผลงานของฉัน
+// ============================================================
+function renderPresentPage() {
+  const isAdmin = currentUser.role === 'admin';
+
+  // Populate who selector
+  const whoSel = document.getElementById('presentWho');
+  const prevWho = whoSel.value;
+  whoSel.innerHTML = '';
+  if (isAdmin) {
+    DB.users.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.id;
+      o.textContent = u.name + (u.role === 'admin' ? ' (Admin)' : '');
+      whoSel.appendChild(o);
+    });
+    if (prevWho) whoSel.value = prevWho;
+  } else {
+    const o = document.createElement('option');
+    o.value = currentUser.id;
+    o.textContent = currentUser.name;
+    whoSel.appendChild(o);
+    whoSel.disabled = true;
+  }
+
+  // Default date range: last 3 months
+  const fromEl = document.getElementById('presentFrom');
+  const toEl   = document.getElementById('presentTo');
+  if (!fromEl.value) {
+    const d = new Date();
+    fromEl.value = new Date(d.getFullYear(), d.getMonth()-2, 1).toISOString().split('T')[0];
+    toEl.value   = today();
+  }
+
+  const uid   = parseInt(whoSel.value) || currentUser.id;
+  const user  = DB.users.find(u => u.id === uid) || currentUser;
+  const from  = fromEl.value;
+  const to    = toEl.value;
+
+  const allTasks   = DB.tasks.filter(t => t.assignee === uid);
+  const doneTasks  = allTasks.filter(t => t.status === 'done' && (!from || (t.doneAt||t.updatedAt) >= from) && (!to || (t.doneAt||t.updatedAt) <= to));
+  const totalTasks = allTasks.filter(t => (!from || (t.createdAt||'') >= from));
+  const onTime     = doneTasks.filter(t => !t.due || (t.doneAt||t.updatedAt) <= t.due).length;
+  const totalHours = doneTasks.reduce((s,t) => s + (t.timeLog||[]).reduce((a,l)=>a+(l.minutes||0),0), 0);
+  const avgProgress= doneTasks.length ? Math.round(doneTasks.reduce((s,t)=>s+t.progress,0)/doneTasks.length) : 0;
+
+  const priorityColor = { high:'#f85149', medium:'#e3b341', low:'#3fb950', critical:'#ff6b6b' };
+  const statusTH = { done:'เสร็จแล้ว', inprogress:'กำลังทำ', pending:'รอดำเนินการ', review:'รอตรวจสอบ', cancelled:'ยกเลิก' };
+
+  document.getElementById('presentContent').innerHTML = `
+    <div id="presentReport" style="max-width:900px;margin:0 auto;padding:8px 0">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,var(--accent2) 0%,var(--teal) 100%);border-radius:16px;padding:32px;margin-bottom:24px;color:#fff;display:flex;align-items:center;gap:24px">
+        <div class="avatar ${user.color||'blue'}" style="width:72px;height:72px;font-size:28px;flex-shrink:0">${getInitials(user.name)}</div>
+        <div style="flex:1">
+          <div style="font-size:22px;font-weight:700;font-family:'Kanit',sans-serif">${user.name}</div>
+          <div style="opacity:.85;font-size:14px;margin-top:4px">${user.role==='admin'?'👑 Admin':'👤 User'} ${user.email?'• '+user.email:''}</div>
+          <div style="opacity:.75;font-size:12px;margin-top:6px">📅 ช่วงเวลา: ${formatDate(from)} — ${formatDate(to)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:40px;font-weight:800;line-height:1">${doneTasks.length}</div>
+          <div style="font-size:12px;opacity:.85">งานที่เสร็จแล้ว</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+        ${[
+          { icon:'✅', label:'งานเสร็จ', value: doneTasks.length + ' งาน', color:'var(--green)' },
+          { icon:'⏱️', label:'On-Time Rate', value: doneTasks.length ? Math.round(onTime/doneTasks.length*100)+'%' : '-', color:'var(--teal)' },
+          { icon:'🕐', label:'ชั่วโมงงาน', value: totalHours >= 60 ? (totalHours/60).toFixed(1)+' ชม.' : totalHours+' นาที', color:'var(--accent2)' },
+          { icon:'📊', label:'Avg Progress', value: avgProgress+'%', color:'var(--yellow2)' },
+        ].map(s=>`
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-size:24px;margin-bottom:6px">${s.icon}</div>
+            <div style="font-size:22px;font-weight:700;color:${s.color};font-family:'Kanit',sans-serif">${s.value}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${s.label}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Done Tasks -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          <span>🏆 งานที่เสร็จสมบูรณ์</span>
+          <span style="background:var(--green);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px">${doneTasks.length}</span>
+        </div>
+        ${doneTasks.length === 0
+          ? `<div style="text-align:center;color:var(--text3);padding:24px">ไม่มีงานที่เสร็จในช่วงเวลานี้</div>`
+          : doneTasks.sort((a,b)=>(b.doneAt||b.updatedAt||'').localeCompare(a.doneAt||a.updatedAt||'')).map(t => {
+              const proj = DB.projects.find(p=>p.id===t.projectId);
+              const isLate = t.due && (t.doneAt||t.updatedAt) > t.due;
+              const hrs = (t.timeLog||[]).reduce((s,l)=>s+(l.minutes||0),0);
+              return `
+              <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start">
+                <div style="width:4px;border-radius:4px;background:${priorityColor[t.priority]||'var(--text3)'};align-self:stretch;flex-shrink:0"></div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:600;font-size:14px;margin-bottom:4px">${t.name}</div>
+                  ${t.goal?`<div style="font-size:12px;color:var(--teal);margin-bottom:4px">🎯 ${t.goal}</div>`:''}
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--text3)">
+                    ${proj?`<span style="background:${proj.color}22;color:${proj.color};border-radius:4px;padding:2px 7px">${proj.name}</span>`:''}
+                    ${t.tag?`<span style="background:var(--bg3);border-radius:4px;padding:2px 7px">#${t.tag}</span>`:''}
+                    <span>${isLate?'🔴 ส่งช้า':'🟢 ส่งทัน'}</span>
+                    ${t.due?`<span>📅 กำหนด: ${formatDate(t.due)}</span>`:''}
+                    ${hrs?`<span>⏱️ ${hrs>=60?(hrs/60).toFixed(1)+' ชม.':hrs+' นาที'}</span>`:''}
+                  </div>
+                  ${t.note?`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding:6px 10px;background:var(--bg3);border-radius:6px">${t.note}</div>`:''}
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-size:18px;font-weight:700;color:var(--green)">${t.progress||100}%</div>
+                  <div style="font-size:10px;color:var(--text3)">${formatDate((t.doneAt||t.updatedAt||'').split('T')[0])}</div>
+                </div>
+              </div>`;
+            }).join('')
+        }
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align:center;color:var(--text3);font-size:11px;padding:8px">
+        สร้างโดย WorkTrack • ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}
+      </div>
+    </div>`;
+}
+
+function printPresent() {
+  const content = document.getElementById('presentReport');
+  if (!content) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>ผลงานของฉัน — WorkTrack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Sarabun',sans-serif;background:#fff;color:#1a1a2e;padding:24px;font-size:13px}
+      .avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#1f6feb;color:#fff;font-weight:700}
+      .blue{background:#1f6feb} .green{background:#3fb950} .purple{background:#bc8cff} .orange{background:#f78166} .teal{background:#39d353} .pink{background:#f778ba}
+      @media print{body{padding:0} button{display:none}}
+    </style>
+  </head><body>${content.outerHTML}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 600);
+}
+
 // ============================================================
 function renderBackupPage() {
   const summary = document.getElementById('backupSummary');
@@ -7430,6 +7615,14 @@ async function reloadFromSheets() {
           <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
             <span style="font-size:13px">💬 @mention ในความคิดเห็น</span>
             <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">✏️ งานถูกแก้ไข (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigUpdate" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">🗑️ งานถูกลบ/Archive (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigDelete" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
           </label>
         </div>
       </div>
