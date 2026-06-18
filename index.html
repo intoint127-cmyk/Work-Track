@@ -1545,14 +1545,16 @@ body,body *{transition:background-color .25s,color .2s,border-color .2s!importan
 
         <!-- PROFILE -->
         <div id="pageProfile" class="page">
-          <div class="grid2">
-            <div class="card">
-              <div class="card-header"><span class="card-title">ข้อมูลส่วนตัว</span><button class="btn btn-ghost" style="font-size:12px" onclick="openChangePasswordModal()">🔑 เปลี่ยนรหัสผ่าน</button></div>
-              <div class="card-body" id="profileBody"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><span class="card-title">สถิติงาน</span></div>
-              <div class="card-body" id="profileStats"></div>
+          <div style="padding:24px">
+            <div class="grid2">
+              <div class="card">
+                <div class="card-header"><span class="card-title">ข้อมูลส่วนตัว</span></div>
+                <div class="card-body" id="profileBody"><p style="color:var(--text2)">กำลังโหลด...</p></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">สถิติงาน</span></div>
+                <div class="card-body" id="profileStats"><p style="color:var(--text2)">กำลังโหลด...</p></div>
+              </div>
             </div>
           </div>
         </div>
@@ -4783,11 +4785,15 @@ function removeAvatar() {
 }
 
 function renderProfile(){
-  const u = currentUser;
-  if (!u) return;
   const profileBodyEl  = document.getElementById('profileBody');
   const profileStatsEl = document.getElementById('profileStats');
   if (!profileBodyEl || !profileStatsEl) return;
+
+  const u = currentUser;
+  if (!u) {
+    profileBodyEl.innerHTML = '<div style="color:red;padding:16px">⚠️ ไม่พบข้อมูลผู้ใช้ (currentUser is null) — ลองออกจากระบบแล้วเข้าใหม่</div>';
+    return;
+  }
 
   const tasks   = DB.tasks.filter(t => t.assignee === u.id);
   const done    = tasks.filter(t => t.status === 'done').length;
