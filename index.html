@@ -3120,6 +3120,7 @@ function saveNotifSettings() {
     trigMention:  document.getElementById('trigMention')?.checked ?? true,
     trigUpdate:   document.getElementById('trigUpdate')?.checked ?? true,
     trigDelete:   document.getElementById('trigDelete')?.checked ?? true,
+    trigComment:  document.getElementById('trigComment')?.checked ?? true,
   };
   localStorage.setItem(NOTIF_KEY, JSON.stringify(s));
 }
@@ -3137,6 +3138,7 @@ function openNotifSettings() {
     trigMention:       s.trigMention ?? true,
     trigUpdate:        s.trigUpdate ?? true,
     trigDelete:        s.trigDelete ?? true,
+    trigComment:       s.trigComment ?? true,
   };
   Object.entries(fields).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -3236,6 +3238,21 @@ async function notifyTaskDone(task) {
   const s = getNotifSettings();
   if (!s.trigDone) return;
   const msg = `\n✅ งานเสร็จสิ้น\nงาน: ${task.name}\nโดย: ${currentUser.name}`;
+  sendLineNotify(msg);
+}
+
+async function notifyTaskCommented(task, assignee, commentText) {
+  const s = getNotifSettings();
+  if (!s.trigComment) return;
+  if (!s.emailEnabled) return;
+  if (!assignee.email) {
+    showToast(`⚠️ ${assignee.name} ไม่มี Email — ไม่ส่งแจ้งเตือน Comment`, 'warn'); return;
+  }
+  if (!USE_SHEETS || !_effectiveUrl) return;
+  const preview = commentText.length > 80 ? commentText.slice(0, 80) + '…' : commentText;
+  const msg = `\n💬 มีคน Comment ในงานของคุณ\nงาน: ${task.name}\nโดย: ${currentUser.name}\nข้อความ: "${preview}"`;
+  await sendEmailNotif(assignee.email, `[WorkTrack] ${currentUser.name} comment ในงาน "${task.name}"`, msg);
+  showToast(`📧 ส่งแจ้งเตือน Comment ไปที่ ${assignee.email} แล้ว`, 'success');
   sendLineNotify(msg);
 }
 
@@ -4244,11 +4261,24 @@ function addComment(taskId) {
   const t = DB.tasks.find(x=>x.id===taskId); if(!t) return;
   if (!t.comments) t.comments=[];
   t.comments.push({ userId: currentUser.id, date: today(), text, reactions: {} });
+  // แจ้งเจ้าของงาน (assignee) เมื่อมีคน comment — ยกเว้น comment ตัวเอง
+  const assignee = getUser(t.assignee);
+  if (assignee && assignee.id !== currentUser.id) {
+    DB.notifications = DB.notifications || [];
+    DB.notifications.push({
+      id: Date.now() + assignee.id,
+      type: 'comment', taskId: t.id,
+      text: `${currentUser.name} comment ในงาน "${t.name}"`,
+      userId: assignee.id, read: false, date: today()
+    });
+    setTimeout(() => notifyTaskCommented(t, assignee, text), 300);
+  }
+
   // @mention notifications
   const mentionedNames = [...text.matchAll(/@(\S+)/g)].map(m=>m[1]);
   mentionedNames.forEach(uname=>{
     const mu=DB.users.find(u=>u.username===uname||u.name===uname);
-    if(mu&&mu.id!==currentUser.id){
+    if(mu&&mu.id!==currentUser.id&&mu.id!==t.assignee){
       DB.notifications=DB.notifications||[];
       DB.notifications.push({id:Date.now()+mu.id,type:'mention',taskId:t.id,
         text:`${currentUser.name} mention คุณใน "${t.name}"`,userId:mu.id,read:false,date:today()});
@@ -7851,6 +7881,10 @@ async function reloadFromSheets() {
           <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
             <span style="font-size:13px">💬 @mention ในความคิดเห็น</span>
             <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">💬 มีคน Comment ในงาน (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigComment" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
           </label>
           <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
             <span style="font-size:13px">✏️ งานถูกแก้ไข (แจ้งผู้รับผิดชอบ)</span>
