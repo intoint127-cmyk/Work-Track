@@ -5737,10 +5737,10 @@ function renderAnalytics() {
   const doneT    = allTasks.filter(t=>t.status==='done').length;
   const overdueT = allTasks.filter(t=>getTaskStatus(t)==='overdue').length;
   const doneRate = totalT ? Math.round(doneT/totalT*100) : 0;
-  const allDoneTasks = DB.tasks.filter(t=>t.status==='done'&&t.doneAt&&t.due);
+  const allDoneTasks = allTasks.filter(t=>t.status==='done'&&t.doneAt&&t.due);
   const onTimeCount  = allDoneTasks.filter(t=>t.doneAt<=t.due).length;
   const onTimeRate   = allDoneTasks.length ? Math.round(onTimeCount/allDoneTasks.length*100) : 0;
-  const totalHours   = Math.round(DB.tasks.reduce((s,t)=>s+totalLogged(t),0)/60);
+  const totalHours   = Math.round(allTasks.reduce((s,t)=>s+totalLogged(t),0)/60);
   const kpiEl = document.getElementById('analyticsKpi');
   const kpiStyle = 'cursor:pointer;transition:transform .15s,box-shadow .15s' +
     ';onmouseenter="this.style.transform=\'translateY(-2px)\'"';
@@ -5763,8 +5763,9 @@ function renderAnalytics() {
     </div>`;
 
   // === On-time Rate by User ===
-  const userOnTime = DB.users.map(u=>{
-    const ut = DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done');
+  const _onTimeUsers = currentUser.role==='admin' ? DB.users : DB.users.filter(u=>u.id===currentUser.id);
+  const userOnTime = _onTimeUsers.map(u=>{
+    const ut = allTasks.filter(t=>t.assignee===u.id&&t.status==='done');
     const onTime = ut.filter(t=>t.doneAt&&t.due&&t.doneAt<=t.due).length;
     return { id:u.id, name:u.name, onTime, total:ut.length, rate:ut.length?Math.round(onTime/ut.length*100):0 };
   }).filter(u=>u.total>0);
@@ -5774,13 +5775,14 @@ function renderAnalytics() {
   for(let i=29;i>=0;i--){
     const d=new Date(now); d.setDate(d.getDate()-i);
     const ds=d.toISOString().split('T')[0];
-    const remaining=DB.tasks.filter(t=>t.status!=='done'||(t.doneAt&&t.doneAt>ds)).length;
+    const remaining=allTasks.filter(t=>t.status!=='done'||(t.doneAt&&t.doneAt>ds)).length;
     days30.push({date:ds,remaining});
   }
 
   // === Time tracking per user ===
-  const timeByUser = DB.users.map(u=>{
-    const ut=DB.tasks.filter(t=>t.assignee===u.id);
+  const _timeUsers = currentUser.role==='admin' ? DB.users : DB.users.filter(u=>u.id===currentUser.id);
+  const timeByUser = _timeUsers.map(u=>{
+    const ut=allTasks.filter(t=>t.assignee===u.id);
     const logged=ut.reduce((s,t)=>s+totalLogged(t),0);
     const estimated=ut.reduce((s,t)=>s+(t.estimate||0)*60,0);
     return {id:u.id,name:u.name.split(' ')[0],logged,estimated};
@@ -7162,11 +7164,12 @@ function renderAnalyticsExtra() {
   };
 
   // Workload — grouped bar
-  const users = DB.users.filter(u=>u.role==='user');
+  const _wlAllTasks = currentUser.role==='admin' ? DB.tasks : DB.tasks.filter(t=>t.assignee===currentUser.id);
+  const users = currentUser.role==='admin' ? DB.users.filter(u=>u.role==='user') : DB.users.filter(u=>u.id===currentUser.id);
   const wlLabels = users.map(u=>u.name.split(' ')[0]);
-  const wlActive  = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status!=='done').length);
-  const wlDone    = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&t.status==='done').length);
-  const wlOverdue = users.map(u=>DB.tasks.filter(t=>t.assignee===u.id&&getTaskStatus(t)==='overdue').length);
+  const wlActive  = users.map(u=>_wlAllTasks.filter(t=>t.assignee===u.id&&t.status!=='done').length);
+  const wlDone    = users.map(u=>_wlAllTasks.filter(t=>t.assignee===u.id&&t.status==='done').length);
+  const wlOverdue = users.map(u=>_wlAllTasks.filter(t=>t.assignee===u.id&&getTaskStatus(t)==='overdue').length);
   destroyChart('chartWorkload');
   const wlCtx = document.getElementById('chartWorkload'); if (!wlCtx) return;
   charts.workload = new Chart(wlCtx.getContext('2d'), {
@@ -7205,7 +7208,7 @@ function renderAnalyticsExtra() {
     const m = new Date(now.getFullYear(), now.getMonth()+i, 1);
     months.push(monthTH[m.getMonth()]+' '+(m.getFullYear()+543-2500));
     const ym = m.toISOString().substring(0,7);
-    dueCount.push(DB.tasks.filter(t=>t.due&&t.due.startsWith(ym)&&t.status!=='done').length);
+    dueCount.push(_wlAllTasks.filter(t=>t.due&&t.due.startsWith(ym)&&t.status!=='done').length);
   }
   destroyChart('chartDueMonth');
   const dmCtx = document.getElementById('chartDueMonth'); if (!dmCtx) return;
