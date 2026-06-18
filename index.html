@@ -3243,10 +3243,21 @@ async function notifyTaskUpdated(task, diffs) {
   const s = getNotifSettings();
   if (!s.trigUpdate) return;
   const assignee = getUser(task.assignee);
-  if (!assignee || assignee.id === currentUser.id) return;
+  if (!assignee) return;
+  if (assignee.id === currentUser.id) return; // ไม่ส่งถ้าแก้งานตัวเอง
   const diffText = diffs && diffs.length ? '\nที่เปลี่ยนแปลง: ' + diffs.map(d=>d.label).join(', ') : '';
   const msg = `\n✏️ งานของคุณถูกแก้ไข\nงาน: ${task.name}${diffText}\nโดย: ${currentUser.name}`;
-  if (assignee.email) sendEmailNotif(assignee.email, `[WorkTrack] แก้ไขงาน: ${task.name}`, msg);
+  if (!s.emailEnabled) {
+    console.log('[Notify] Email ยังไม่เปิด — ไปเปิดที่ ตั้งค่าการแจ้งเตือน'); return;
+  }
+  if (!assignee.email) {
+    showToast(`⚠️ ${assignee.name} ไม่มี Email ในระบบ — ไม่ส่งแจ้งเตือน`, 'warn'); return;
+  }
+  if (!USE_SHEETS || !_effectiveUrl) {
+    showToast('⚠️ ต้องเชื่อมต่อ Google Sheets ก่อนถึงจะส่งเมลได้', 'warn'); return;
+  }
+  await sendEmailNotif(assignee.email, `[WorkTrack] แก้ไขงาน: ${task.name}`, msg);
+  showToast(`📧 ส่งแจ้งเตือนไปที่ ${assignee.email} แล้ว`, 'success');
   sendLineNotify(msg);
 }
 
