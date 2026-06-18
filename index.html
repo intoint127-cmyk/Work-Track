@@ -4783,78 +4783,74 @@ function removeAvatar() {
 }
 
 function renderProfile(){
-  try {
   const u = currentUser;
   if (!u) return;
-  const tasks  = DB.tasks.filter(t => t.assignee === u.id);
-  const done   = tasks.filter(t => t.status === 'done').length;
-  const avg    = tasks.length ? Math.round(tasks.reduce((s,t) => s + t.progress, 0) / tasks.length) : 0;
-  const overdue= tasks.filter(t => getTaskStatus(t) === 'overdue').length;
+  const profileBodyEl  = document.getElementById('profileBody');
+  const profileStatsEl = document.getElementById('profileStats');
+  if (!profileBodyEl || !profileStatsEl) return;
 
-  const avatarEl = u.avatar
-    ? `<img src="${u.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block">`
-    : `<div class="avatar ${u.color||'blue'}" style="width:72px;height:72px;font-size:28px;display:flex;align-items:center;justify-content:center">${getInitials(u.name||'?')}</div>`;
+  const tasks   = DB.tasks.filter(t => t.assignee === u.id);
+  const done    = tasks.filter(t => t.status === 'done').length;
+  const inprog  = tasks.filter(t => t.status === 'inprogress').length;
+  const avg     = tasks.length ? Math.round(tasks.reduce((s,t) => s + t.progress, 0) / tasks.length) : 0;
+  const overdue = tasks.filter(t => getTaskStatus(t) === 'overdue').length;
 
-  const profileBodyEl = document.getElementById('profileBody');
-  if (!profileBodyEl) return;
+  // Avatar HTML (สร้างแยกก่อนเพื่อหลีกเลี่ยง nested template)
+  let avatarHtml = '';
+  if (u.avatar) {
+    avatarHtml = '<img src="' + u.avatar + '" style="width:72px;height:72px;border-radius:50%;object-fit:cover;display:block">';
+  } else {
+    avatarHtml = '<div class="avatar ' + (u.color||'blue') + '" style="width:72px;height:72px;font-size:28px;display:flex;align-items:center;justify-content:center">' + getInitials(u.name||'?') + '</div>';
+  }
 
-  profileBodyEl.innerHTML = `
-    <!-- Avatar -->
-    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">
-      <div style="position:relative;display:inline-block;margin-bottom:8px;cursor:pointer"
-           onclick="document.getElementById('avatarFileInput').click()" title="คลิกเพื่อเปลี่ยนรูป">
-        ${avatarEl}
-        <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg2)">📷</div>
-      </div>
-      <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-      ${u.avatar ? `<button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-bottom:4px" onclick="removeAvatar()">🗑 ลบรูป</button>` : ''}
-      <div style="font-size:18px;font-weight:700;margin-top:4px">${u.name || '-'}</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:2px">${u.position||''} ${u.dept ? '• ' + u.dept : ''}</div>
-      <span class="badge ${u.role==='admin'?'badge-red':'badge-blue'}" style="margin-top:8px">${u.role==='admin'?'👑 Admin':'👤 User'}</span>
-    </div>
+  // Admin section
+  let adminSection = '';
+  if (u.role === 'admin') {
+    adminSection = '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">'
+      + '<div style="font-weight:600;font-size:13px;margin-bottom:10px">⚙️ ตั้งค่าระบบ (Admin)</div>'
+      + '<button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px" onclick="openCustomFieldsModal()">📋 จัดการ Custom Fields <span style="margin-left:auto;font-size:11px;color:var(--text3)">' + (DB.customFields||[]).length + ' fields</span></button>';
+  }
 
-    <!-- Info -->
-    <div class="info-row"><span class="info-label">ชื่อผู้ใช้:</span><span>@${u.username||'-'}</span></div>
-    <div class="info-row"><span class="info-label">อีเมล:</span><span>${u.email||'-'}</span></div>
-    <div class="info-row"><span class="info-label">แผนก:</span><span>${u.dept||'-'}</span></div>
-    <div class="info-row"><span class="info-label">ตำแหน่ง:</span><span>${u.position||'-'}</span></div>
+  profileBodyEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px">'
+    + '<div style="position:relative;display:inline-block;margin-bottom:8px;cursor:pointer" onclick="document.getElementById(\'avatarFileInput\').click()" title="คลิกเพื่อเปลี่ยนรูป">'
+    + avatarHtml
+    + '<div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg2)">📷</div>'
+    + '</div>'
+    + '<input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="uploadAvatar(this)">'
+    + (u.avatar ? '<button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-bottom:4px" onclick="removeAvatar()">🗑 ลบรูป</button>' : '')
+    + '<div style="font-size:18px;font-weight:700;margin-top:4px">' + (u.name||'-') + '</div>'
+    + '<div style="font-size:13px;color:var(--text2);margin-top:2px">' + (u.position||'') + (u.dept ? ' • ' + u.dept : '') + '</div>'
+    + '<span class="badge ' + (u.role==='admin'?'badge-red':'badge-blue') + '" style="margin-top:8px">' + (u.role==='admin'?'👑 Admin':'👤 User') + '</span>'
+    + '</div>'
+    + '<div class="info-row"><span class="info-label">ชื่อผู้ใช้:</span><span>@' + (u.username||'-') + '</span></div>'
+    + '<div class="info-row"><span class="info-label">อีเมล:</span><span>' + (u.email||'-') + '</span></div>'
+    + '<div class="info-row"><span class="info-label">แผนก:</span><span>' + (u.dept||'-') + '</span></div>'
+    + '<div class="info-row"><span class="info-label">ตำแหน่ง:</span><span>' + (u.position||'-') + '</span></div>'
+    + '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">'
+    + '<div style="font-weight:600;font-size:13px;margin-bottom:12px">🔑 เปลี่ยนรหัสผ่าน</div>'
+    + '<div id="changePwdInlineAlert"></div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px">'
+    + '<input type="password" id="inlineOldPwd" placeholder="รหัสผ่านเดิม" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">'
+    + '<input type="password" id="inlineNewPwd" placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">'
+    + '<input type="password" id="inlineConfirmPwd" placeholder="ยืนยันรหัสผ่านใหม่" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">'
+    + '<button class="btn btn-primary" style="width:100%" onclick="changePasswordInline()">บันทึกรหัสผ่านใหม่</button>'
+    + '</div>'
+    + adminSection;
 
-    <!-- Change Password -->
-    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-    <div style="font-weight:600;font-size:13px;margin-bottom:12px">🔑 เปลี่ยนรหัสผ่าน</div>
-    <div id="changePwdInlineAlert"></div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <input type="password" id="inlineOldPwd" placeholder="รหัสผ่านเดิม"
-        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
-      <input type="password" id="inlineNewPwd" placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
-        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
-      <input type="password" id="inlineConfirmPwd" placeholder="ยืนยันรหัสผ่านใหม่"
-        style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text1);font-size:13px;outline:none">
-      <button class="btn btn-primary" style="width:100%" onclick="changePasswordInline()">บันทึกรหัสผ่านใหม่</button>
-    </div>
-
-    ${u.role==='admin' ? `
-    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-    <div style="font-weight:600;font-size:13px;margin-bottom:10px">⚙️ ตั้งค่าระบบ (Admin)</div>
-    <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px" onclick="openCustomFieldsModal()">
-      📋 จัดการ Custom Fields <span style="margin-left:auto;font-size:11px;color:var(--text3)">${(DB.customFields||[]).length} fields</span>
-    </button>` : ''}
-  `;
-  document.getElementById('profileStats').innerHTML=`
-    <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
-      <div class="stat-card blue"><div class="stat-label">งานทั้งหมด</div><div class="stat-value blue">${tasks.length}</div></div>
-      <div class="stat-card green"><div class="stat-label">เสร็จสิ้น</div><div class="stat-value green">${done}</div></div>
-      <div class="stat-card yellow"><div class="stat-label">กำลังดำเนินการ</div><div class="stat-value yellow">${tasks.filter(t=>t.status==='inprogress').length}</div></div>
-      <div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value red">${overdue}</div></div>
-    </div>
-    <div style="margin-top:16px">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">คืบหน้าเฉลี่ย</div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="progress-wrap" style="flex:1;height:10px"><div class="progress-bar ${progressColor(avg)}" style="width:${avg}%"></div></div>
-        <span style="font-weight:700;font-size:18px">${avg}%</span>
-      </div>
-    </div>`;
-  } catch(e) { console.error('renderProfile error:', e); }
+  profileStatsEl.innerHTML =
+    '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">'
+    + '<div class="stat-card blue"><div class="stat-label">งานทั้งหมด</div><div class="stat-value blue">' + tasks.length + '</div></div>'
+    + '<div class="stat-card green"><div class="stat-label">เสร็จสิ้น</div><div class="stat-value green">' + done + '</div></div>'
+    + '<div class="stat-card yellow"><div class="stat-label">กำลังดำเนินการ</div><div class="stat-value yellow">' + inprog + '</div></div>'
+    + '<div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value red">' + overdue + '</div></div>'
+    + '</div>'
+    + '<div style="margin-top:16px">'
+    + '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">คืบหน้าเฉลี่ย</div>'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<div class="progress-wrap" style="flex:1;height:10px"><div class="progress-bar ' + progressColor(avg) + '" style="width:' + avg + '%"></div></div>'
+    + '<span style="font-weight:700;font-size:18px">' + avg + '%</span>'
+    + '</div></div>';
 }
 
 function changePasswordInline() {
