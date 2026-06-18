@@ -3456,7 +3456,9 @@ function showPage(page) {
     profile:   { el:'pageProfile',    title:'👤 โปรไฟล์' },
   };
   const cfg = map[page]; if (!cfg) return;
-  document.getElementById(cfg.el).classList.add('active');
+  const activeEl = document.getElementById(cfg.el);
+  activeEl.classList.add('active');
+  activeEl.style.display = 'block';
   document.getElementById('pageTitle').textContent = cfg.title;
 
   // Active nav
