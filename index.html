@@ -3712,7 +3712,11 @@ function renderDashboard() {
   // ── Activity Feed ────────────────────────────────────────────
   const feedEl = document.getElementById('activityFeed');
   if (feedEl) {
-    const logs = (DB.auditLog||[]).slice(-15).reverse();
+    const allLogs = DB.auditLog||[];
+    const logs = (currentUser.role==='admin'
+      ? allLogs
+      : allLogs.filter(l => l.user === currentUser.name)
+    ).slice(-15).reverse();
     const colorMap = {'สร้างงาน':'#3fb950','แก้ไขงาน':'#58a6ff','เสร็จสิ้น':'#bc8cff','ลบ':'#f85149','เข้าสู่ระบบ':'#6e7681'};
     feedEl.innerHTML = logs.length ? logs.map(l=>{
       const col = Object.entries(colorMap).find(([k])=>l.action?.includes(k))?.[1]||'var(--text3)';
@@ -4668,8 +4672,11 @@ function generatePDF(){
 // ============================================================
 function renderAuditPage(){
   const body=document.getElementById('auditBody');
-  if(!DB.auditLog.length){ body.innerHTML='<div class="empty-state"><div class="icon">🛡️</div><p>ยังไม่มีบันทึกกิจกรรม</p></div>'; return; }
-  body.innerHTML=DB.auditLog.slice(0,100).map(l=>`
+  const logs = currentUser.role==='admin'
+    ? (DB.auditLog||[])
+    : (DB.auditLog||[]).filter(l => l.user === currentUser.name);
+  if(!logs.length){ body.innerHTML='<div class="empty-state"><div class="icon">🛡️</div><p>ยังไม่มีบันทึกกิจกรรม</p></div>'; return; }
+  body.innerHTML=logs.slice(0,100).map(l=>`
     <div class="audit-item">
       <div class="audit-time">${new Date(l.time).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}<br><span style="font-size:10px">${new Date(l.time).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})}</span></div>
       <div style="width:30px;font-size:16px;text-align:center">${l.action.includes('เข้า')?'🔐':l.action.includes('ออก')?'🚪':l.action.includes('สร้าง')?'➕':l.action.includes('แก้ไข')?'✏️':l.action.includes('ลบ')?'🗑️':l.action.includes('ส่งออก')?'📥':l.action.includes('Comment')?'💬':l.action.includes('รหัส')?'🔑':'📝'}</div>
