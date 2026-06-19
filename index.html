@@ -3154,8 +3154,15 @@ function getNotifSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(NOTIF_KEY)) || {};
     if (s.emailEnabled === undefined) s.emailEnabled = !!(USE_SHEETS && _effectiveUrl);
+    if (s.trigComment  === undefined) s.trigComment  = true;
+    if (s.trigOverdue  === undefined) s.trigOverdue  = true;
+    if (s.trigSoon     === undefined) s.trigSoon     = true;
+    if (s.trigAssign   === undefined) s.trigAssign   = true;
+    if (s.trigMention  === undefined) s.trigMention  = true;
+    if (s.trigUpdate   === undefined) s.trigUpdate   = true;
+    if (s.trigDelete   === undefined) s.trigDelete   = true;
     return s;
-  } catch(e) { return {}; }
+  } catch(e) { return { emailEnabled: !!(USE_SHEETS && _effectiveUrl), trigComment:true, trigOverdue:true, trigSoon:true, trigAssign:true, trigMention:true, trigUpdate:true, trigDelete:true }; }
 }
 
 function saveNotifSettings() {
