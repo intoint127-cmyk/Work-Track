@@ -2036,6 +2036,7 @@ async function loadDBFromSheets() {
     DB.nextProjectId = Math.max(0, ...(DB.projects.map(p=>p.id)||[0])) + 1;
 
     showToast('✅ โหลดข้อมูลจาก Google Sheets แล้ว', 'success');
+    checkNewCommentNotifs();
   } catch(e) {
     console.error('loadDBFromSheets error:', e);
     loadDB();
@@ -2237,9 +2238,43 @@ function buildNotifications() {
   updateNotifBadge();
 }
 function updateNotifBadge() {
-  const unread = DB.notifications.filter(n => !n.read).length;
+  if (!currentUser) return;
+  const unread = DB.notifications.filter(n => {
+    if (n.read) return false;
+    if (n.type === 'comment' || n.type === 'mention') return n.userId === currentUser.id;
+    return !n.userId || n.userId === currentUser.id;
+  }).length;
   const dot = document.getElementById('notifDot');
   if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
+}
+
+function checkNewCommentNotifs() {
+  if (!currentUser) return;
+  const myTasks = DB.tasks.filter(t => t.assignee === currentUser.id);
+  const seenKey = 'wt_seenCmts_' + currentUser.id;
+  const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
+  let added = false;
+  myTasks.forEach(t => {
+    (t.comments || []).forEach(c => {
+      if (parseInt(c.userId) === currentUser.id) return;
+      const cid = t.id + '_' + c.userId + '_' + c.date + '_' + (c.text||'').slice(0,15);
+      if (seen.has(cid)) return;
+      seen.add(cid);
+      const notifId = 'cmt_' + cid;
+      if (!DB.notifications.find(n => n.id === notifId)) {
+        const who = DB.users.find(u => u.id === parseInt(c.userId));
+        DB.notifications.unshift({
+          id: notifId, type: 'comment', taskId: t.id, userId: currentUser.id,
+          title: '💬 ' + (who ? who.name : 'ผู้ใช้') + ' comment ในงาน "' + t.name + '"',
+          sub: (c.text||'').length > 60 ? (c.text||'').slice(0,60) + '…' : (c.text||''),
+          date: c.date, read: false
+        });
+        added = true;
+      }
+    });
+  });
+  localStorage.setItem(seenKey, JSON.stringify([...seen]));
+  if (added) updateNotifBadge();
 }
 function renderNotifPanel() {
   const list = document.getElementById('notifList');
@@ -3401,6 +3436,7 @@ function initApp() {
   };
   populateReportUserSelect();
   buildNotifications();
+  checkNewCommentNotifs();
   updateArchiveBadge();
   updateProjBadge();
   checkAutoSnapshot();
@@ -7763,6 +7799,7 @@ async function reloadFromSheets() {
   closeModal('sheetsConfigModal');
   await loadDBFromSheets();
   renderDashboard();
+  checkNewCommentNotifs();
   showToast('🔄 โหลดข้อมูลจาก Sheets แล้ว', 'success');
 }
 
@@ -7896,30 +7933,4 @@ async function reloadFromSheets() {
           </label>
           <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
             <span style="font-size:13px">💬 @mention ในความคิดเห็น</span>
-            <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
-          </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-            <span style="font-size:13px">💬 มีคน Comment ในงาน (แจ้งผู้รับผิดชอบ)</span>
-            <label class="toggle-switch"><input type="checkbox" id="trigComment" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
-          </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-            <span style="font-size:13px">✏️ งานถูกแก้ไข (แจ้งผู้รับผิดชอบ)</span>
-            <label class="toggle-switch"><input type="checkbox" id="trigUpdate" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
-          </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-            <span style="font-size:13px">🗑️ งานถูกลบ/Archive (แจ้งผู้รับผิดชอบ)</span>
-            <label class="toggle-switch"><input type="checkbox" id="trigDelete" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
-          </label>
-        </div>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('notifSettingsModal')">ปิด</button>
-      <button class="btn btn-primary" onclick="sendDailyDigest()">📨 ส่ง Daily Digest ตอนนี้</button>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
+            <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="togg
