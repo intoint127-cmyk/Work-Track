@@ -3151,7 +3151,11 @@ function exportCSVReport() {
 const NOTIF_KEY = 'wt_notif_settings';
 
 function getNotifSettings() {
-  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || {}; } catch(e) { return {}; }
+  try {
+    const s = JSON.parse(localStorage.getItem(NOTIF_KEY)) || {};
+    if (s.emailEnabled === undefined) s.emailEnabled = !!(USE_SHEETS && _effectiveUrl);
+    return s;
+  } catch(e) { return {}; }
 }
 
 function saveNotifSettings() {
@@ -7933,4 +7937,30 @@ async function reloadFromSheets() {
           </label>
           <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
             <span style="font-size:13px">💬 @mention ในความคิดเห็น</span>
-            <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="togg
+            <label class="toggle-switch"><input type="checkbox" id="trigMention" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">💬 มีคน Comment ในงาน (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigComment" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">✏️ งานถูกแก้ไข (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigUpdate" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+            <span style="font-size:13px">🗑️ งานถูกลบ/Archive (แจ้งผู้รับผิดชอบ)</span>
+            <label class="toggle-switch"><input type="checkbox" id="trigDelete" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('notifSettingsModal')">ปิด</button>
+      <button class="btn btn-primary" onclick="sendDailyDigest()">📨 ส่ง Daily Digest ตอนนี้</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
